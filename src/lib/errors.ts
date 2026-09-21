@@ -1,7 +1,7 @@
 /** Macht aus technischen Fehlern verständliche deutsche Meldungen. */
 export function errMsg(e: unknown): string {
   const m = (e as { message?: string } | null)?.message ?? String(e)
-  if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return 'Keine Verbindung. Bitte später erneut versuchen.'
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return `Keine Verbindung (${m}). Bitte später erneut versuchen.`
   if (/Invalid login credentials/i.test(m)) return 'E-Mail oder Passwort falsch.'
   if (/Email not confirmed/i.test(m)) return 'Bitte zuerst die E-Mail-Adresse bestätigen.'
   if (/Signups not allowed|signup.*disabled/i.test(m)) return 'Die Registrierung ist derzeit deaktiviert.'

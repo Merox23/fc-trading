@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Footer } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
+import { diagnose } from '../lib/diagnose'
 import { errMsg } from '../lib/errors'
 import { ALLOW_SIGNUP, supabase } from '../lib/supabase'
 
@@ -38,6 +39,23 @@ export function NotConfigured() {
 
 type Mode = 'login' | 'signup' | 'reset'
 
+/** Bricht nach 20 s mit einer verständlichen Meldung ab, statt endlos zu warten */
+function withTimeout<T>(p: Promise<T>, ms = 20000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = window.setTimeout(() => reject(new Error('Keine Antwort von Supabase nach 20 Sekunden.')), ms)
+    p.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(t)
+        reject(e)
+      },
+    )
+  })
+}
+
 export default function Login() {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -45,6 +63,15 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [diag, setDiag] = useState<string[] | null>(null)
+  const [diagBusy, setDiagBusy] = useState(false)
+
+  async function runDiag() {
+    setDiagBusy(true)
+    setDiag(['Prüfe ...'])
+    setDiag(await diagnose())
+    setDiagBusy(false)
+  }
 
   function switchMode(m: Mode) {
     setMode(m)
@@ -61,7 +88,7 @@ export default function Login() {
     setBusy(true)
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        const { error } = await withTimeout(supabase.auth.signInWithPassword({ email: email.trim(), password }))
         if (error) throw error
       } else if (mode === 'signup') {
         if (password.length < 8) throw new Error('Das Passwort braucht mindestens 8 Zeichen.')
@@ -153,6 +180,18 @@ export default function Login() {
           </button>
         )}
       </form>
+      {mode === 'login' && (
+        <div className="mt-2 grid gap-2">
+          <button type="button" className="btn btn-ghost text-[15px]" onClick={() => void runDiag()} disabled={diagBusy}>
+            {diagBusy ? 'Prüfe ...' : 'Verbindung testen'}
+          </button>
+          {diag && (
+            <pre className="whitespace-pre-wrap break-words rounded-xl bg-raised p-3 text-[13px] leading-relaxed text-mute">
+              {diag.join('\n')}
+            </pre>
+          )}
+        </div>
+      )}
     </Frame>
   )
 }
