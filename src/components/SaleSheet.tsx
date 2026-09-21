@@ -1,0 +1,89 @@
+import { useEffect, useState } from 'react'
+import { netProceeds, profit } from '../lib/calc'
+import { fmt, fmtSigned } from '../lib/format'
+import { useData } from '../hooks/useData'
+import { useRun } from '../hooks/useToast'
+import type { Trade } from '../types'
+import { BottomSheet } from './BottomSheet'
+import { PriceInput } from './PriceInput'
+import { VersionChip } from './ui'
+
+function Preview({ price, buyPrice }: { price: number | null; buyPrice: number }) {
+  const ok = price !== null && price > 0
+  const gain = ok ? profit(price, buyPrice) : 0
+  return (
+    <div className="grid grid-cols-2 gap-3 rounded-xl bg-raised p-3">
+      <div>
+        <div className="text-[13px] text-mute">Netto-Erlös</div>
+        <div className="text-lg font-bold tabular-nums">{ok ? fmt(netProceeds(price)) : '-'}</div>
+      </div>
+      <div>
+        <div className="text-[13px] text-mute">Gewinn</div>
+        <div className={`text-lg font-bold tabular-nums ${!ok ? '' : gain >= 0 ? 'text-good' : 'text-bad'}`}>
+          {ok ? fmtSigned(gain) : '-'}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Verkaufs-Dialog: Sofortkauf mit einem Tipp oder Endpreis eines Gebots eintragen */
+export function SaleSheet({ trade, onClose }: { trade: Trade | null; onClose: () => void }) {
+  const { sellTrade, versionById } = useData()
+  const run = useRun()
+  const [bid, setBid] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    setBid(trade?.bid_price ?? null)
+  }, [trade])
+
+  if (!trade) return null
+  const version = versionById(trade.card_version_id)
+
+  async function sell(price: number, type: 'buy_now' | 'bid') {
+    if (busy || !trade) return
+    setBusy(true)
+    const g = profit(price, trade.buy_price)
+    const ok = await run(() => sellTrade(trade.id, price, type), `Verkauft, Gewinn ${fmtSigned(g)}`)
+    setBusy(false)
+    if (ok) onClose()
+  }
+
+  return (
+    <BottomSheet open onClose={onClose} title={trade.player_name}>
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
+        {trade.rating != null && <span className="font-bold text-ink">{trade.rating}</span>}
+        {version && <VersionChip version={version} />}
+        <span>Einkauf {fmt(trade.buy_price)}</span>
+      </div>
+
+      {trade.buy_now_price != null && (
+        <div className="grid gap-2">
+          <button
+            className="btn btn-coin min-h-[4.5rem] w-full text-xl"
+            disabled={busy}
+            onClick={() => void sell(trade.buy_now_price!, 'buy_now')}
+          >
+            Sofortkauf ({fmt(trade.buy_now_price)})
+          </button>
+          <Preview price={trade.buy_now_price} buyPrice={trade.buy_price} />
+        </div>
+      )}
+
+      <p className="my-4 text-center text-[15px] text-mute">oder als Gebot verkauft</p>
+
+      <div className="grid gap-3">
+        <PriceInput label="Endpreis Gebot" value={bid} onChange={setBid} />
+        <Preview price={bid} buyPrice={trade.buy_price} />
+        <button
+          className="btn btn-quiet min-h-14 w-full text-lg"
+          disabled={busy || bid === null || bid <= 0}
+          onClick={() => bid && void sell(bid, 'bid')}
+        >
+          Bestätigen
+        </button>
+      </div>
+    </BottomSheet>
+  )
+}

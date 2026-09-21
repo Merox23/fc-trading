@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night: #0b1020;
+  --color-card: #141b2e;
+  --color-raised: #1c2540;
+  --color-line: #2a3452;
+  --color-ink: #eef2ff;
+  --color-mute: #93a0c0;
+  --color-coin: #f2c14e;
+  --color-on-coin: #1a1400;
+  --color-good: #4ade80;
+  --color-bad: #fb7185;
+  --font-display: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html, body, #root { min-height: 100%; }
+
+body {
+  background: var(--color-night);
+  color: var(--color-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+@layer components {
+  .label { @apply mb-1.5 block text-[13px] font-medium text-mute; }
+  .field {
+    @apply w-full min-h-12 rounded-xl border border-line bg-raised px-4 text-base text-ink outline-none
+      placeholder:text-mute/60 focus:border-coin;
+  }
+  .btn {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-5 text-base
+      font-semibold transition active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+  }
+  .btn-coin { @apply bg-coin text-on-coin; }
+  .btn-quiet { @apply border border-line bg-raised text-ink; }
+  .btn-danger { @apply bg-bad text-[#2a0a10]; }
+  .btn-ghost { @apply text-mute; }
+  .tile { @apply rounded-2xl border border-line bg-card p-4; }
+}
+
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.sheet-anim { animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.fade-anim { animation: fade-in 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-anim, .fade-anim { animation: none; }
+}
+
+input[type="color"] { padding: 4px; }
+select.field { appearance: none; background-image: none; }

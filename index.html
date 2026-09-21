@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FC Trading" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>FC Trading</title>
+    <style>
+      html, body { margin: 0; background: #0b1020; }
+      #splash { min-height: 100dvh; display: grid; place-items: center; align-content: center; gap: 14px;
+        color: #f2c14e; font: 700 22px ui-rounded, system-ui, sans-serif; letter-spacing: .01em; }
+      #splash img { width: 88px; height: 88px; border-radius: 20px; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="splash"><img src="/icon-192.png" alt="" /><div>FC Trading</div></div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

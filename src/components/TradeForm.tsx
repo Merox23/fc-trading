@@ -1,0 +1,209 @@
+import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { CHEMSTYLES } from '../constants'
+import { useData } from '../hooks/useData'
+import type { Trade, TradeInput } from '../types'
+import { PriceInput } from './PriceInput'
+import { VersionSelect } from './VersionSelect'
+
+interface Props {
+  initial?: Trade
+  submitLabel: string
+  onSubmit: (v: TradeInput) => Promise<boolean>
+  /** true: Formular nach dem Speichern leeren (schnelles Eintragen) */
+  clearOnSuccess?: boolean
+  /** true: Speichern-Button klebt über der Tab-Leiste (nur für die Seite, nicht im Sheet) */
+  stickySubmit?: boolean
+}
+
+export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stickySubmit }: Props) {
+  const { trades } = useData()
+  const initChem = initial?.chemstyle ?? 'Keiner'
+
+  const [name, setName] = useState(initial?.player_name ?? '')
+  const [versionId, setVersionId] = useState<string | null>(initial?.card_version_id ?? null)
+  const [rating, setRating] = useState(initial?.rating ? String(initial.rating) : '')
+  const [chem, setChem] = useState(initChem)
+  const [otherChem, setOtherChem] = useState(!CHEMSTYLES.includes(initChem))
+  const [buy, setBuy] = useState<number | null>(initial?.buy_price ?? null)
+  const [bid, setBid] = useState<number | null>(initial?.bid_price ?? null)
+  const [buyNow, setBuyNow] = useState<number | null>(initial?.buy_now_price ?? null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const nameRef = useRef<HTMLInputElement>(null)
+
+  // Vorschläge aus bereits eingetragenen Spielernamen
+  const names = useMemo(
+    () => Array.from(new Set(trades.map((t) => t.player_name))).sort((a, b) => a.localeCompare(b, 'de')),
+    [trades],
+  )
+
+  function reset() {
+    setName('')
+    setVersionId(null)
+    setRating('')
+    setChem('Keiner')
+    setOtherChem(false)
+    setBuy(null)
+    setBid(null)
+    setBuyNow(null)
+    setError('')
+  }
+
+  function validate(): TradeInput | string {
+    const playerName = name.trim()
+    if (!playerName) return 'Bitte den Spielernamen eingeben.'
+    if (!versionId) return 'Bitte eine Version wählen.'
+    const r = Number(rating)
+    if (!rating || !Number.isInteger(r) || r < 1 || r > 99) return 'Das Rating muss zwischen 1 und 99 liegen.'
+    const chemstyle = chem.trim()
+    if (!chemstyle) return 'Bitte einen Chemstyle wählen oder eintragen.'
+    if (buy === null) return 'Bitte den Einkaufspreis eingeben.'
+    if (bid === null) return 'Bitte den Gebotspreis eingeben.'
+    if (buyNow === null) return 'Bitte den Sofortkaufpreis eingeben.'
+    if (bid > buyNow) return 'Der Gebotspreis darf nicht höher sein als der Sofortkaufpreis.'
+    return {
+      player_name: playerName,
+      card_version_id: versionId,
+      rating: r,
+      chemstyle,
+      buy_price: buy,
+      bid_price: bid,
+      buy_now_price: buyNow,
+    }
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    const result = validate()
+    if (typeof result === 'string') {
+      setError(result)
+      return
+    }
+    setError('')
+    setBusy(true)
+    const ok = await onSubmit(result)
+    setBusy(false)
+    if (ok && clearOnSuccess) {
+      reset()
+      nameRef.current?.focus()
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid gap-4" noValidate>
+      <div>
+        <label htmlFor="player-name" className="label">
+          Spielername
+        </label>
+        <input
+          id="player-name"
+          ref={nameRef}
+          className="field"
+          list="known-players"
+          autoComplete="off"
+          autoCapitalize="words"
+          enterKeyHint="next"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="z. B. Jamal Musiala"
+        />
+        <datalist id="known-players">
+          {names.slice(0, 300).map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+      </div>
+
+      <div>
+        <VersionSelect value={versionId} onChange={setVersionId} />
+      </div>
+
+      <div className="grid grid-cols-[6.5rem_1fr] gap-3">
+        <div>
+          <label htmlFor="rating" className="label">
+            Rating
+          </label>
+          <input
+            id="rating"
+            className="field text-center text-lg tabular-nums"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={2}
+            autoComplete="off"
+            value={rating}
+            onChange={(e) => setRating(e.target.value.replace(/\D/g, '').slice(0, 2))}
+            placeholder="91"
+          />
+        </div>
+        <div>
+          <label htmlFor="chem" className="label">
+            Chemstyle
+          </label>
+          <div className="relative">
+            <select
+              id="chem"
+              className="field pr-10"
+              value={otherChem ? '__other' : chem}
+              onChange={(e) => {
+                if (e.target.value === '__other') {
+                  setOtherChem(true)
+                  setChem('')
+                } else {
+                  setOtherChem(false)
+                  setChem(e.target.value)
+                }
+              }}
+            >
+              {CHEMSTYLES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+              <option value="__other">Andere …</option>
+            </select>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-mute" aria-hidden="true">
+              &#x25BE;
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {otherChem && (
+        <div>
+          <label htmlFor="chem-other" className="label">
+            Eigener Chemstyle
+          </label>
+          <input
+            id="chem-other"
+            className="field"
+            autoComplete="off"
+            value={chem}
+            onChange={(e) => setChem(e.target.value)}
+            placeholder="Name des Chemstyles"
+          />
+        </div>
+      )}
+
+      <PriceInput label="Einkaufspreis" value={buy} onChange={setBuy} />
+      <PriceInput label="Gebotspreis (Startpreis)" value={bid} onChange={setBid} />
+      <PriceInput label="Sofortkaufpreis" value={buyNow} onChange={setBuyNow} />
+
+      <div
+        className={
+          stickySubmit
+            ? 'sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 -mx-4 bg-gradient-to-t from-night via-night to-transparent px-4 pb-3 pt-4'
+            : 'pt-1'
+        }
+      >
+        {error && (
+          <p role="alert" className="mb-2 text-[15px] font-medium text-bad">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="btn btn-coin min-h-14 w-full text-lg" disabled={busy}>
+          {busy ? 'Speichert …' : submitLabel}
+        </button>
+      </div>
+    </form>
+  )
+}
