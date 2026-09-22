@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { withTimeout } from '../lib/timeout'
 import { DEFAULT_VERSION_ORDER } from '../constants'
 import type { CardVersion, SoldType, Trade, TradeInput } from '../types'
 
@@ -51,10 +52,13 @@ async function fetchAll<T>(table: 'trades' | 'card_versions'): Promise<T[]> {
   const size = 1000
   for (let from = 0; ; from += size) {
     const q = supabase.from(table).select('*')
-    const { data, error } =
+    const { data, error } = await withTimeout(
       table === 'trades'
-        ? await q.order('created_at', { ascending: false }).order('id').range(from, from + size - 1)
-        : await q.order('name').range(from, from + size - 1)
+        ? q.order('created_at', { ascending: false }).order('id').range(from, from + size - 1)
+        : q.order('name').range(from, from + size - 1),
+      20000,
+      'Keine Antwort vom Server. Bitte später erneut versuchen.',
+    )
     if (error) throw error
     out.push(...(data as T[]))
     if (data.length < size) break
@@ -137,7 +141,11 @@ export function DataProvider({ userId, children }: { userId: string; children: R
   const versionById = useCallback((id: string | null) => (id ? versionMap.get(id) : undefined), [versionMap])
 
   async function patchTrade(id: string, patch: Partial<Trade>) {
-    const { data, error } = await supabase.from('trades').update(patch).eq('id', id).select().single()
+    const { data, error } = await withTimeout(
+      supabase.from('trades').update(patch).eq('id', id).select().single(),
+      20000,
+      'Keine Antwort vom Server. Bitte später erneut versuchen.',
+    )
     if (error) throw error
     setTrades((list) => list.map((t) => (t.id === id ? (data as Trade) : t)))
   }
@@ -150,17 +158,21 @@ export function DataProvider({ userId, children }: { userId: string; children: R
     offline,
     refresh,
     async addTrade(i) {
-      const { data, error } = await supabase
-        .from('trades')
-        .insert({ ...i, user_id: userId })
-        .select()
-        .single()
+      const { data, error } = await withTimeout(
+        supabase.from('trades').insert({ ...i, user_id: userId }).select().single(),
+        20000,
+        'Keine Antwort vom Server. Bitte später erneut versuchen.',
+      )
       if (error) throw error
       setTrades((list) => [data as Trade, ...list])
     },
     updateTrade: (id, i) => patchTrade(id, i),
     async deleteTrade(id) {
-      const { error } = await supabase.from('trades').delete().eq('id', id)
+      const { error } = await withTimeout(
+        supabase.from('trades').delete().eq('id', id),
+        20000,
+        'Keine Antwort vom Server. Bitte später erneut versuchen.',
+      )
       if (error) throw error
       setTrades((list) => list.filter((t) => t.id !== id))
     },
@@ -168,26 +180,29 @@ export function DataProvider({ userId, children }: { userId: string; children: R
       patchTrade(id, { status: 'sold', sold_price: price, sold_type: type, sold_at: new Date().toISOString() }),
     undoSale: (id) => patchTrade(id, { status: 'listed', sold_price: null, sold_type: null, sold_at: null }),
     async addVersion(name, color) {
-      const { data, error } = await supabase
-        .from('card_versions')
-        .insert({ user_id: userId, name, color })
-        .select()
-        .single()
+      const { data, error } = await withTimeout(
+        supabase.from('card_versions').insert({ user_id: userId, name, color }).select().single(),
+        20000,
+        'Keine Antwort vom Server. Bitte später erneut versuchen.',
+      )
       if (error) throw error
       setVersions((list) => sortVersions([...list, data as CardVersion]))
     },
     async updateVersion(id, name, color) {
-      const { data, error } = await supabase
-        .from('card_versions')
-        .update({ name, color })
-        .eq('id', id)
-        .select()
-        .single()
+      const { data, error } = await withTimeout(
+        supabase.from('card_versions').update({ name, color }).eq('id', id).select().single(),
+        20000,
+        'Keine Antwort vom Server. Bitte später erneut versuchen.',
+      )
       if (error) throw error
       setVersions((list) => sortVersions(list.map((v) => (v.id === id ? (data as CardVersion) : v))))
     },
     async deleteVersion(id) {
-      const { error } = await supabase.from('card_versions').delete().eq('id', id)
+      const { error } = await withTimeout(
+        supabase.from('card_versions').delete().eq('id', id),
+        20000,
+        'Keine Antwort vom Server. Bitte später erneut versuchen.',
+      )
       if (error) throw error
       setVersions((list) => list.filter((v) => v.id !== id))
     },
