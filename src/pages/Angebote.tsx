@@ -29,7 +29,7 @@ export default function Angebote() {
   return (
     <>
       <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
         <Tile
           label="Erlös bei Sofortkauf (netto)"
@@ -37,7 +37,6 @@ export default function Angebote() {
           sub="wenn alles verkauft wird"
         />
         <Tile
-          wide
           label="Gewinn bei Sofortkauf"
           value={fmtSigned(potential.profit)}
           tone={potential.profit >= 0 ? 'text-good' : 'text-bad'}
