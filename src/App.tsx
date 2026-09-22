@@ -12,6 +12,7 @@ import Statistik from './pages/Statistik'
 import Mehr from './pages/Mehr'
 import Kartenversionen from './pages/Kartenversionen'
 import Konto from './pages/Konto'
+import AngebotePdf from './pages/AngebotePdf'
 import { Datenschutz, Impressum } from './pages/Legal'
 
 function Splash() {
@@ -46,6 +47,7 @@ function Gate() {
     <DataProvider userId={session.user.id}>
       <Routes>
         {legal}
+        <Route path="/angebote/pdf" element={<AngebotePdf />} />
         <Route element={<Shell />}>
           <Route index element={<Eintragen />} />
           <Route path="angebote" element={<Angebote />} />

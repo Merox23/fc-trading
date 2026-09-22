@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ConfirmSheet, BottomSheet } from '../components/BottomSheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
@@ -28,7 +29,14 @@ export default function Angebote() {
 
   return (
     <>
-      <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
+      <div className="flex items-start justify-between gap-3">
+        <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
+        {all.length > 0 && (
+          <Link to="/angebote/pdf" className="btn btn-quiet mt-1 shrink-0 px-4 text-[14px]">
+            Als PDF exportieren
+          </Link>
+        )}
+      </div>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
         <Tile

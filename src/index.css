@@ -77,3 +77,9 @@ legend { padding: 0; width: 100%; }
 
 input[type="color"] { padding: 4px; }
 select.field { appearance: none; background-image: none; }
+
+/* Druckansicht (Angebote als PDF): Wasserzeichen weg, nur der Inhalt der Seite selbst wird gedruckt */
+@media print {
+  body::before { display: none !important; }
+  .no-print { display: none !important; }
+}
