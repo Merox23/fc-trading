@@ -27,6 +27,8 @@ body {
 
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
+fieldset { margin: 0; min-width: 0; }
+legend { padding: 0; width: 100%; }
 
 @layer components {
   .label { @apply mb-1.5 block text-[13px] font-medium text-mute; }

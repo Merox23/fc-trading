@@ -1,9 +1,24 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { CHEMSTYLES } from '../constants'
 import { useData } from '../hooks/useData'
 import type { Trade, TradeInput } from '../types'
 import { PriceInput } from './PriceInput'
 import { VersionSelect } from './VersionSelect'
+
+/** Gruppiert zusammengehörige Felder sichtbar, damit das Formular nicht als eine lange Liste wirkt */
+function FormGroup({ step, title, children }: { step: number; title: string; children: ReactNode }) {
+  return (
+    <fieldset className="rounded-2xl border border-line bg-card p-4">
+      <legend className="mb-3 flex items-center gap-2 px-0.5">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-coin text-[13px] font-bold text-on-coin">
+          {step}
+        </span>
+        <span className="font-display text-[17px] font-bold">{title}</span>
+      </legend>
+      <div className="grid gap-4">{children}</div>
+    </fieldset>
+  )
+}
 
 interface Props {
   initial?: Trade
@@ -91,102 +106,106 @@ export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stic
 
   return (
     <form onSubmit={submit} className="grid gap-4" noValidate>
-      <div>
-        <label htmlFor="player-name" className="label">
-          Spielername
-        </label>
-        <input
-          id="player-name"
-          ref={nameRef}
-          className="field"
-          list="known-players"
-          autoComplete="off"
-          autoCapitalize="words"
-          enterKeyHint="next"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="z. B. Jamal Musiala"
-        />
-        <datalist id="known-players">
-          {names.slice(0, 300).map((n) => (
-            <option key={n} value={n} />
-          ))}
-        </datalist>
-      </div>
-
-      <div>
-        <VersionSelect value={versionId} onChange={setVersionId} />
-      </div>
-
-      <div className="grid grid-cols-[6.5rem_1fr] gap-3">
+      <FormGroup step={1} title="Spielerdaten">
         <div>
-          <label htmlFor="rating" className="label">
-            Rating
+          <label htmlFor="player-name" className="label">
+            Spielername
           </label>
           <input
-            id="rating"
-            className="field text-center text-lg tabular-nums"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={2}
+            id="player-name"
+            ref={nameRef}
+            className="field"
+            list="known-players"
             autoComplete="off"
-            value={rating}
-            onChange={(e) => setRating(e.target.value.replace(/\D/g, '').slice(0, 2))}
-            placeholder="91"
+            autoCapitalize="words"
+            enterKeyHint="next"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="z. B. Jamal Musiala"
           />
+          <datalist id="known-players">
+            {names.slice(0, 300).map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
         </div>
+
         <div>
-          <label htmlFor="chem" className="label">
-            Chemstyle
-          </label>
-          <div className="relative">
-            <select
-              id="chem"
-              className="field pr-10"
-              value={otherChem ? '__other' : chem}
-              onChange={(e) => {
-                if (e.target.value === '__other') {
-                  setOtherChem(true)
-                  setChem('')
-                } else {
-                  setOtherChem(false)
-                  setChem(e.target.value)
-                }
-              }}
-            >
-              {CHEMSTYLES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-              <option value="__other">Andere …</option>
-            </select>
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-mute" aria-hidden="true">
-              &#x25BE;
-            </span>
+          <VersionSelect value={versionId} onChange={setVersionId} />
+        </div>
+
+        <div className="grid grid-cols-[6.5rem_1fr] gap-3">
+          <div>
+            <label htmlFor="rating" className="label">
+              Rating
+            </label>
+            <input
+              id="rating"
+              className="field text-center text-lg tabular-nums"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={2}
+              autoComplete="off"
+              value={rating}
+              onChange={(e) => setRating(e.target.value.replace(/\D/g, '').slice(0, 2))}
+              placeholder="91"
+            />
+          </div>
+          <div>
+            <label htmlFor="chem" className="label">
+              Chemstyle
+            </label>
+            <div className="relative">
+              <select
+                id="chem"
+                className="field pr-10"
+                value={otherChem ? '__other' : chem}
+                onChange={(e) => {
+                  if (e.target.value === '__other') {
+                    setOtherChem(true)
+                    setChem('')
+                  } else {
+                    setOtherChem(false)
+                    setChem(e.target.value)
+                  }
+                }}
+              >
+                {CHEMSTYLES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value="__other">Andere …</option>
+              </select>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-mute" aria-hidden="true">
+                &#x25BE;
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {otherChem && (
-        <div>
-          <label htmlFor="chem-other" className="label">
-            Eigener Chemstyle
-          </label>
-          <input
-            id="chem-other"
-            className="field"
-            autoComplete="off"
-            value={chem}
-            onChange={(e) => setChem(e.target.value)}
-            placeholder="Name des Chemstyles"
-          />
-        </div>
-      )}
+        {otherChem && (
+          <div>
+            <label htmlFor="chem-other" className="label">
+              Eigener Chemstyle
+            </label>
+            <input
+              id="chem-other"
+              className="field"
+              autoComplete="off"
+              value={chem}
+              onChange={(e) => setChem(e.target.value)}
+              placeholder="Name des Chemstyles"
+            />
+          </div>
+        )}
+      </FormGroup>
 
-      <PriceInput label="Einkaufspreis" value={buy} onChange={setBuy} />
-      <PriceInput label="Gebotspreis (Startpreis)" value={bid} onChange={setBid} />
-      <PriceInput label="Sofortkaufpreis" value={buyNow} onChange={setBuyNow} />
+      <FormGroup step={2} title="Preise">
+        <PriceInput label="Einkaufspreis" value={buy} onChange={setBuy} />
+        <PriceInput label="Gebotspreis (Startpreis)" value={bid} onChange={setBid} />
+        <PriceInput label="Sofortkaufpreis" value={buyNow} onChange={setBuyNow} />
+      </FormGroup>
 
       <div
         className={
