@@ -128,6 +128,16 @@ export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stic
               <option key={n} value={n} />
             ))}
           </datalist>
+          {name.trim().length >= 2 && (
+            <a
+              className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
+              href={`https://www.futbin.com/27/players?search=${encodeURIComponent(name.trim())}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Bei Futbin nachschauen &#x2197;
+            </a>
+          )}
         </div>
 
         <div>
