@@ -44,6 +44,7 @@ export default function AngebotePdf() {
             <th className="py-2 pr-3">Spieler</th>
             <th className="py-2 pr-3">Version</th>
             <th className="py-2 pr-3 text-right">Rating</th>
+            <th className="py-2 pr-3">Chemstyle</th>
             <th className="py-2 pr-3 text-right">Einkauf</th>
             <th className="py-2 text-right">Angebotspreis</th>
           </tr>
@@ -56,6 +57,7 @@ export default function AngebotePdf() {
                 <td className="py-2 pr-3">{t.player_name}</td>
                 <td className="py-2 pr-3">{v?.name ?? '-'}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{t.rating ?? '-'}</td>
+                <td className="py-2 pr-3">{t.chemstyle}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{fmt(t.buy_price)}</td>
                 <td className="py-2 text-right tabular-nums">{t.buy_now_price != null ? fmt(t.buy_now_price) : '-'}</td>
               </tr>
@@ -63,7 +65,7 @@ export default function AngebotePdf() {
           })}
           {listed.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-6 text-center text-[#777]">
+              <td colSpan={6} className="py-6 text-center text-[#777]">
                 Keine offenen Angebote.
               </td>
             </tr>
@@ -72,7 +74,7 @@ export default function AngebotePdf() {
         {listed.length > 0 && (
           <tfoot>
             <tr className="border-t-2 border-[#111] font-semibold">
-              <td className="py-2 pr-3" colSpan={4}>
+              <td className="py-2 pr-3" colSpan={5}>
                 Summe Angebotspreise
               </td>
               <td className="py-2 text-right tabular-nums">{fmt(total)}</td>
