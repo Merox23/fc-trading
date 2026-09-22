@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { netProceeds, profit, taxLoss } from './calc'
 import { fmt, fmtSigned } from './format'
-import { lockedCoins, soldInRange, summarize, topByCount, topByPrice, topByProfit } from './stats'
+import { lockedCoins, potentialIfAllSold, soldInRange, summarize, topByCount, topByPrice, topByProfit } from './stats'
 import type { Trade } from '../types'
 
 describe('EA-Steuer', () => {
@@ -96,6 +96,13 @@ describe('Statistik', () => {
 
   it('gebundene Coins = Einkaufspreise offener Angebote', () => {
     expect(lockedCoins(trades)).toBe(10000)
+  })
+
+  it('möglicher Erlös/Gewinn, wenn alle offenen Angebote zum Sofortkaufpreis verkauft würden', () => {
+    // offen: Offen (Einkauf 7000, Sofortkauf 9000) und Offen2 (Einkauf 3000, Sofortkauf 4000)
+    const p = potentialIfAllSold(trades)
+    expect(p.revenueNet).toBe(Math.floor(9000 * 0.95) + Math.floor(4000 * 0.95))
+    expect(p.profit).toBe((Math.floor(9000 * 0.95) - 7000) + (Math.floor(4000 * 0.95) - 3000))
   })
 
   it('Top-Listen', () => {

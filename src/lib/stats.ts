@@ -39,6 +39,18 @@ export function lockedCoins(trades: Trade[]): number {
   return trades.filter((t) => t.status === 'listed').reduce((s, t) => s + t.buy_price, 0)
 }
 
+/** Möglicher Erlös/Gewinn, wenn alle offenen Angebote zum Sofortkaufpreis verkauft würden */
+export function potentialIfAllSold(trades: Trade[]) {
+  const listed = trades.filter((t) => t.status === 'listed' && t.buy_now_price != null)
+  let revenueNet = 0
+  let totalProfit = 0
+  for (const t of listed) {
+    revenueNet += netProceeds(t.buy_now_price!)
+    totalProfit += profit(t.buy_now_price!, t.buy_price)
+  }
+  return { revenueNet, profit: totalProfit }
+}
+
 export function topByPrice(sold: Trade[], n = 10): Trade[] {
   return [...sold].sort((a, b) => (b.sold_price ?? 0) - (a.sold_price ?? 0)).slice(0, n)
 }

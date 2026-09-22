@@ -3,11 +3,11 @@ import { ConfirmSheet, BottomSheet } from '../components/BottomSheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
 import { TradeForm } from '../components/TradeForm'
-import { Empty, MoreButton, PageTitle, SearchField } from '../components/ui'
+import { Empty, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
-import { fmt } from '../lib/format'
-import { lockedCoins } from '../lib/stats'
+import { fmt, fmtSigned } from '../lib/format'
+import { lockedCoins, potentialIfAllSold } from '../lib/stats'
 import type { Trade } from '../types'
 
 export default function Angebote() {
@@ -24,10 +24,26 @@ export default function Angebote() {
     const term = q.trim().toLowerCase()
     return term ? all.filter((t) => t.player_name.toLowerCase().includes(term)) : all
   }, [all, q])
+  const potential = useMemo(() => potentialIfAllSold(trades), [trades])
 
   return (
     <>
-      <PageTitle sub={`${all.length} offen, ${fmt(lockedCoins(trades))} Coins gebunden`}>Angebote</PageTitle>
+      <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
+        <Tile
+          label="Erlös bei Sofortkauf (netto)"
+          value={fmt(potential.revenueNet)}
+          sub="wenn alles verkauft wird"
+        />
+        <Tile
+          wide
+          label="Gewinn bei Sofortkauf"
+          value={fmtSigned(potential.profit)}
+          tone={potential.profit >= 0 ? 'text-good' : 'text-bad'}
+          sub="wenn alles zum Sofortkaufpreis verkauft wird"
+        />
+      </div>
       <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
         {shown.length === 0 ? (

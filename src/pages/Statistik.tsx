@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { PageTitle, Segmented } from '../components/ui'
+import { PageTitle, Segmented, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { fmt, fmtDate, fmtSigned } from '../lib/format'
 import {
@@ -11,28 +11,6 @@ import {
   topByProfit,
   type Range,
 } from '../lib/stats'
-
-function Tile({
-  label,
-  value,
-  tone,
-  sub,
-  wide,
-}: {
-  label: string
-  value: string
-  tone?: string
-  sub?: string
-  wide?: boolean
-}) {
-  return (
-    <div className={`tile ${wide ? 'col-span-2 md:col-span-4' : ''}`}>
-      <div className="text-[13px] text-mute">{label}</div>
-      <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${tone ?? ''}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-[13px] text-mute">{sub}</div>}
-    </div>
-  )
-}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

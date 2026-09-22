@@ -131,3 +131,25 @@ export function PageTitle({ children, sub }: { children: ReactNode; sub?: ReactN
     </div>
   )
 }
+
+export function Tile({
+  label,
+  value,
+  tone,
+  sub,
+  wide,
+}: {
+  label: string
+  value: string
+  tone?: string
+  sub?: string
+  wide?: boolean
+}) {
+  return (
+    <div className={`tile ${wide ? 'col-span-2 md:col-span-4' : ''}`}>
+      <div className="text-[13px] text-mute">{label}</div>
+      <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${tone ?? ''}`}>{value}</div>
+      {sub && <div className="mt-0.5 text-[13px] text-mute">{sub}</div>}
+    </div>
+  )
+}
