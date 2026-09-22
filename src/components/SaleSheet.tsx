@@ -6,7 +6,7 @@ import { useRun } from '../hooks/useToast'
 import type { Trade } from '../types'
 import { BottomSheet } from './BottomSheet'
 import { PriceInput } from './PriceInput'
-import { VersionChip } from './ui'
+import { PlayerAvatar, VersionChip } from './ui'
 
 function Preview({ price, buyPrice }: { price: number | null; buyPrice: number }) {
   const ok = price !== null && price > 0
@@ -52,10 +52,13 @@ export function SaleSheet({ trade, onClose }: { trade: Trade | null; onClose: ()
 
   return (
     <BottomSheet open onClose={onClose} title={trade.player_name}>
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
-        {trade.rating != null && <span className="font-bold text-ink">{trade.rating}</span>}
-        {version && <VersionChip version={version} />}
-        <span>Einkauf {fmt(trade.buy_price)}</span>
+      <div className="mb-4 flex items-center gap-3">
+        <PlayerAvatar name={trade.player_name} color={version?.color} size={36} />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
+          {trade.rating != null && <span className="font-bold text-ink">{trade.rating}</span>}
+          {version && <VersionChip version={version} />}
+          <span>Einkauf {fmt(trade.buy_price)}</span>
+        </div>
       </div>
 
       {trade.buy_now_price != null && (

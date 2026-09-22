@@ -153,3 +153,34 @@ export function Tile({
     </div>
   )
 }
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+/** Wählt Schwarz oder Weiß als Textfarbe, je nachdem, was auf der Hintergrundfarbe besser lesbar ist */
+function readableOn(hex: string): string {
+  const c = hex.replace('#', '')
+  const r = parseInt(c.slice(0, 2), 16)
+  const g = parseInt(c.slice(2, 4), 16)
+  const b = parseInt(c.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6 ? '#1a1400' : '#ffffff'
+}
+
+/** Runder Avatar mit den Initialen des Spielers, eingefärbt in der Farbe der Kartenversion */
+export function PlayerAvatar({ name, color, size = 44 }: { name: string; color?: string; size?: number }) {
+  const bg = color ?? '#2a3452'
+  return (
+    <span
+      aria-hidden="true"
+      className="flex shrink-0 items-center justify-center rounded-full font-display font-bold"
+      style={{ width: size, height: size, background: bg, color: readableOn(bg), fontSize: size * 0.38 }}
+    >
+      {initials(name)}
+    </span>
+  )
+}

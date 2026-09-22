@@ -3,7 +3,7 @@ import { netProceeds, profit } from '../lib/calc'
 import { fmt, fmtDate, fmtSigned } from '../lib/format'
 import { useData } from '../hooks/useData'
 import type { Trade } from '../types'
-import { VersionChip } from './ui'
+import { PlayerAvatar, VersionChip } from './ui'
 
 function Amount({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
@@ -23,16 +23,19 @@ export function TradeCard({ trade, onOpen, children }: { trade: Trade; onOpen?: 
 
   const head = (
     <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <h3 className="truncate font-display text-lg font-bold">{trade.player_name}</h3>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
-          {trade.rating != null && (
-            <span className="rounded-md bg-raised px-1.5 py-0.5 text-[14px] font-bold tabular-nums text-ink">
-              {trade.rating}
-            </span>
-          )}
-          {version && <VersionChip version={version} />}
-          <span>{trade.chemstyle}</span>
+      <div className="flex min-w-0 items-center gap-3">
+        <PlayerAvatar name={trade.player_name} color={version?.color} />
+        <div className="min-w-0">
+          <h3 className="truncate font-display text-lg font-bold">{trade.player_name}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
+            {trade.rating != null && (
+              <span className="rounded-md bg-raised px-1.5 py-0.5 text-[14px] font-bold tabular-nums text-ink">
+                {trade.rating}
+              </span>
+            )}
+            {version && <VersionChip version={version} />}
+            <span>{trade.chemstyle}</span>
+          </div>
         </div>
       </div>
       {isSold && (
