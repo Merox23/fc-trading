@@ -123,8 +123,8 @@ export function Shell() {
             Offline: zuletzt geladener Stand
           </div>
         )}
-        <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 md:max-w-6xl md:px-10 md:pb-12 md:pt-10">
-          {loading ? <p className="py-20 text-center text-mute">Lädt …</p> : <Outlet />}
+        <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-5 md:max-w-6xl md:px-10 md:pb-12 md:pt-10">
+          <div className="flex-1">{loading ? <p className="py-20 text-center text-mute">Lädt …</p> : <Outlet />}</div>
           <Footer />
         </main>
         <MobileTabBar />

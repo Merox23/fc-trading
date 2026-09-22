@@ -17,8 +17,8 @@ function Brand() {
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))]">
-      {children}
+    <div className="mx-auto flex min-h-dvh max-w-sm flex-col px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))]">
+      <div className="flex flex-1 flex-col justify-center">{children}</div>
       <Footer />
     </div>
   )
