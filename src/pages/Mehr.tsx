@@ -27,7 +27,7 @@ export default function Mehr() {
   return (
     <>
       <PageTitle>Mehr</PageTitle>
-      <div className="grid gap-3">
+      <div className="grid gap-3 md:max-w-md">
         <Item to="/mehr/versionen" title="Kartenversionen" sub="Eigene Spezialkarten mit Farbe anlegen" />
         <Item to="/mehr/konto" title="Konto" sub="Passwort ändern oder Konto löschen" />
         <button className="btn btn-quiet mt-3 min-h-14 text-bad" onClick={() => void signOut()}>

@@ -33,6 +33,7 @@ export default function Kartenversionen() {
       </Link>
       <PageTitle sub="Standardversionen gelten für alle. Eigene kannst du ändern und löschen.">Kartenversionen</PageTitle>
 
+      <div className="md:max-w-2xl">
       <button className="btn btn-coin mb-5 min-h-14 w-full text-lg" onClick={() => setEditing('new')}>
         Neue Version
       </button>
@@ -69,6 +70,7 @@ export default function Kartenversionen() {
           </li>
         ))}
       </ul>
+      </div>
 
       <BottomSheet
         open={editing !== null}

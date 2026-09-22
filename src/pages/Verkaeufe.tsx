@@ -28,7 +28,7 @@ export default function Verkaeufe() {
   return (
     <>
       <PageTitle sub={`${sold.length} verkaufte Spieler`}>Verkäufe</PageTitle>
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
         {shown.length === 0 ? (
           <Empty
@@ -36,13 +36,15 @@ export default function Verkaeufe() {
             text={q ? 'Prüfe die Schreibweise.' : 'Verkäufe trägst du unter "Eintragen" ein.'}
           />
         ) : (
-          shown.slice(0, limit).map((t) => (
-            <TradeCard key={t.id} trade={t}>
-              <button className="btn btn-quiet w-full text-[15px]" onClick={() => setUndo(t)}>
-                Verkauf rückgängig machen
-              </button>
-            </TradeCard>
-          ))
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {shown.slice(0, limit).map((t) => (
+              <TradeCard key={t.id} trade={t}>
+                <button className="btn btn-quiet w-full text-[15px]" onClick={() => setUndo(t)}>
+                  Verkauf rückgängig machen
+                </button>
+              </TradeCard>
+            ))}
+          </div>
         )}
         <MoreButton shown={Math.min(limit, shown.length)} total={shown.length} onMore={() => setLimit((l) => l + 25)} />
       </div>

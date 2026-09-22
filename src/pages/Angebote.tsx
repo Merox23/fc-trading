@@ -28,7 +28,7 @@ export default function Angebote() {
   return (
     <>
       <PageTitle sub={`${all.length} offen, ${fmt(lockedCoins(trades))} Coins gebunden`}>Angebote</PageTitle>
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
         {shown.length === 0 ? (
           <Empty
@@ -36,21 +36,23 @@ export default function Angebote() {
             text={q ? 'Prüfe die Schreibweise.' : 'Neue Spieler trägst du unter "Eintragen" ein.'}
           />
         ) : (
-          shown.slice(0, limit).map((t) => (
-            <TradeCard key={t.id} trade={t}>
-              <div className="grid grid-cols-3 gap-2">
-                <button className="btn btn-coin px-2 text-[15px]" onClick={() => setSell(t)}>
-                  Verkauft
-                </button>
-                <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setEdit(t)}>
-                  Bearbeiten
-                </button>
-                <button className="btn btn-quiet px-2 text-[15px] text-bad" onClick={() => setDel(t)}>
-                  Löschen
-                </button>
-              </div>
-            </TradeCard>
-          ))
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {shown.slice(0, limit).map((t) => (
+              <TradeCard key={t.id} trade={t}>
+                <div className="grid grid-cols-3 gap-2">
+                  <button className="btn btn-coin px-2 text-[15px]" onClick={() => setSell(t)}>
+                    Verkauft
+                  </button>
+                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setEdit(t)}>
+                    Bearbeiten
+                  </button>
+                  <button className="btn btn-quiet px-2 text-[15px] text-bad" onClick={() => setDel(t)}>
+                    Löschen
+                  </button>
+                </div>
+              </TradeCard>
+            ))}
+          </div>
         )}
         <MoreButton shown={Math.min(limit, shown.length)} total={shown.length} onMore={() => setLimit((l) => l + 25)} />
       </div>

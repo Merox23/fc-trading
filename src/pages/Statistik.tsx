@@ -26,7 +26,7 @@ function Tile({
   wide?: boolean
 }) {
   return (
-    <div className={`tile ${wide ? 'col-span-2' : ''}`}>
+    <div className={`tile ${wide ? 'col-span-2 md:col-span-4' : ''}`}>
       <div className="text-[13px] text-mute">{label}</div>
       <div className={`mt-1 font-display text-2xl font-bold tabular-nums ${tone ?? ''}`}>{value}</div>
       {sub && <div className="mt-0.5 text-[13px] text-mute">{sub}</div>}
@@ -36,7 +36,7 @@ function Tile({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-6">
+    <section>
       <h2 className="mb-2 font-display text-lg font-bold">{title}</h2>
       <div className="tile !py-1">{children}</div>
     </section>
@@ -83,7 +83,7 @@ export default function Statistik() {
         ]}
       />
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Tile label="Gesamt-Erlös (netto)" value={fmt(sum.revenueNet)} />
         <Tile
           label="Gesamt-Gewinn"
@@ -100,6 +100,7 @@ export default function Statistik() {
         />
       </div>
 
+      <div className="mt-6 grid gap-6 lg:grid-cols-3 lg:gap-4">
       <Section title="Top Verkäufe nach Preis">
         {byPrice.length === 0 ? (
           NONE
@@ -148,6 +149,7 @@ export default function Statistik() {
           </ol>
         )}
       </Section>
+      </div>
     </>
   )
 }

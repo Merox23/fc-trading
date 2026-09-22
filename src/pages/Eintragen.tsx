@@ -54,7 +54,7 @@ function SellList() {
   }, [trades, q])
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
       <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
       {listed.length === 0 ? (
         <Empty
@@ -62,7 +62,11 @@ function SellList() {
           text={q ? 'Prüfe die Schreibweise.' : 'Trage zuerst unter "Neuer Spieler" einen Spieler ein.'}
         />
       ) : (
-        listed.slice(0, limit).map((t) => <TradeCard key={t.id} trade={t} onOpen={() => setSelected(t)} />)
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {listed.slice(0, limit).map((t) => (
+            <TradeCard key={t.id} trade={t} onOpen={() => setSelected(t)} />
+          ))}
+        </div>
       )}
       <MoreButton shown={Math.min(limit, listed.length)} total={listed.length} onMore={() => setLimit((l) => l + 25)} />
       <SaleSheet trade={selected} onClose={() => setSelected(null)} />

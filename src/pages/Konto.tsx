@@ -50,7 +50,7 @@ export default function Konto() {
       </Link>
       <PageTitle sub={session?.user.email}>Konto</PageTitle>
 
-      <form onSubmit={changePassword} className="tile grid gap-4" noValidate>
+      <form onSubmit={changePassword} className="tile grid gap-4 md:max-w-md" noValidate>
         <h2 className="font-display text-lg font-bold">Passwort ändern</h2>
         <div>
           <label htmlFor="new-pw" className="label">
@@ -74,7 +74,7 @@ export default function Konto() {
         </button>
       </form>
 
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6 grid gap-3 md:max-w-md">
         <button className="btn btn-quiet min-h-14" onClick={() => void signOut()}>
           Abmelden
         </button>

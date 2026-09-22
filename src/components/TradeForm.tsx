@@ -105,7 +105,7 @@ export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stic
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
+    <form onSubmit={submit} className="grid gap-4 md:mx-auto md:max-w-4xl md:items-start lg:grid-cols-2" noValidate>
       <FormGroup step={1} title="Spielerdaten">
         <div>
           <label htmlFor="player-name" className="label">
@@ -210,8 +210,8 @@ export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stic
       <div
         className={
           stickySubmit
-            ? 'sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 -mx-4 bg-gradient-to-t from-night via-night to-transparent px-4 pb-3 pt-4'
-            : 'pt-1'
+            ? 'sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 -mx-4 bg-gradient-to-t from-night via-night to-transparent px-4 pb-3 pt-4 md:static md:mx-0 md:bg-none md:px-0 md:pb-0 md:pt-0 lg:col-span-2'
+            : 'pt-1 lg:col-span-2'
         }
       >
         {error && (
