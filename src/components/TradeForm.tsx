@@ -22,6 +22,8 @@ function FormGroup({ step, title, children }: { step: number; title: string; chi
 
 interface Props {
   initial?: Trade
+  /** Für einen neuen Eintrag mit vorausgefüllten Werten (z. B. Rückkauf nach Verkauf) */
+  prefill?: Pick<TradeInput, 'player_name' | 'card_version_id' | 'rating'>
   submitLabel: string
   onSubmit: (v: TradeInput) => Promise<boolean>
   /** true: Formular nach dem Speichern leeren (schnelles Eintragen) */
@@ -30,13 +32,15 @@ interface Props {
   stickySubmit?: boolean
 }
 
-export function TradeForm({ initial, submitLabel, onSubmit, clearOnSuccess, stickySubmit }: Props) {
+export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSuccess, stickySubmit }: Props) {
   const { trades } = useData()
   const initChem = initial?.chemstyle ?? 'Keiner'
 
-  const [name, setName] = useState(initial?.player_name ?? '')
-  const [versionId, setVersionId] = useState<string | null>(initial?.card_version_id ?? null)
-  const [rating, setRating] = useState(initial?.rating ? String(initial.rating) : '')
+  const [name, setName] = useState(initial?.player_name ?? prefill?.player_name ?? '')
+  const [versionId, setVersionId] = useState<string | null>(initial?.card_version_id ?? prefill?.card_version_id ?? null)
+  const [rating, setRating] = useState(
+    initial?.rating ? String(initial.rating) : prefill?.rating ? String(prefill.rating) : '',
+  )
   const [chem, setChem] = useState(initChem)
   const [otherChem, setOtherChem] = useState(!CHEMSTYLES.includes(initChem))
   const [buy, setBuy] = useState<number | null>(initial?.buy_price ?? null)

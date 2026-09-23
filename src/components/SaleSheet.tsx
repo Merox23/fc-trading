@@ -6,6 +6,7 @@ import { useRun } from '../hooks/useToast'
 import type { Trade } from '../types'
 import { BottomSheet } from './BottomSheet'
 import { PriceInput } from './PriceInput'
+import { TradeForm } from './TradeForm'
 import { PlayerAvatar, VersionChip } from './ui'
 
 function Preview({ price, buyPrice }: { price: number | null; buyPrice: number }) {
@@ -27,15 +28,20 @@ function Preview({ price, buyPrice }: { price: number | null; buyPrice: number }
   )
 }
 
-/** Verkaufs-Dialog: Sofortkauf mit einem Tipp oder Endpreis eines Gebots eintragen */
+type Step = 'sell' | 'rebuy-offer' | 'rebuy-form'
+
+/** Verkaufs-Dialog: Sofortkauf mit einem Tipp oder Endpreis eines Gebots eintragen,
+ *  danach optional direkt denselben Spieler neu einkaufen (Name/Version/Rating vorausgefüllt) */
 export function SaleSheet({ trade, onClose }: { trade: Trade | null; onClose: () => void }) {
-  const { sellTrade, versionById } = useData()
+  const { sellTrade, addTrade, versionById } = useData()
   const run = useRun()
   const [bid, setBid] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const [step, setStep] = useState<Step>('sell')
 
   useEffect(() => {
     setBid(trade?.bid_price ?? null)
+    setStep('sell')
   }, [trade])
 
   if (!trade) return null
@@ -47,7 +53,48 @@ export function SaleSheet({ trade, onClose }: { trade: Trade | null; onClose: ()
     const g = profit(price, trade.buy_price)
     const ok = await run(() => sellTrade(trade.id, price, type), `Verkauft, Gewinn ${fmtSigned(g)}`)
     setBusy(false)
-    if (ok) onClose()
+    if (ok) setStep('rebuy-offer')
+  }
+
+  if (step === 'rebuy-form') {
+    return (
+      <BottomSheet open onClose={onClose} title={`${trade.player_name} neu einkaufen`}>
+        <TradeForm
+          submitLabel="Neu einkaufen"
+          prefill={{ player_name: trade.player_name, card_version_id: trade.card_version_id, rating: trade.rating }}
+          onSubmit={async (v) => {
+            const ok = await run(() => addTrade(v), 'Neu eingekauft')
+            if (ok) onClose()
+            return ok
+          }}
+        />
+      </BottomSheet>
+    )
+  }
+
+  if (step === 'rebuy-offer') {
+    return (
+      <BottomSheet open onClose={onClose} title="Verkauft!">
+        <div className="mb-5 flex items-center gap-3">
+          <PlayerAvatar name={trade.player_name} color={version?.color} size={36} />
+          <div>
+            <div className="font-display text-lg font-bold">{trade.player_name}</div>
+            {version && <VersionChip version={version} />}
+          </div>
+        </div>
+        <p className="mb-5 text-[15px] leading-relaxed text-mute">
+          Direkt neu einkaufen? Name, Version und Rating übernehme ich, Preise und Chemstyle trägst du neu ein.
+        </p>
+        <div className="grid gap-3">
+          <button className="btn btn-coin min-h-14 text-lg" onClick={() => setStep('rebuy-form')}>
+            Ja, neu einkaufen
+          </button>
+          <button className="btn btn-quiet min-h-14 text-lg" onClick={onClose}>
+            Nein, fertig
+          </button>
+        </div>
+      </BottomSheet>
+    )
   }
 
   return (
