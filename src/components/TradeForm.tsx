@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react
 import { CHEMSTYLES } from '../constants'
 import { useData } from '../hooks/useData'
 import type { Trade, TradeInput } from '../types'
+import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
 import { VersionSelect } from './VersionSelect'
 
@@ -115,23 +116,14 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
           <label htmlFor="player-name" className="label">
             Spielername
           </label>
-          <input
+          <NameAutocomplete
             id="player-name"
-            ref={nameRef}
-            className="field"
-            list="known-players"
-            autoComplete="off"
-            autoCapitalize="words"
-            enterKeyHint="next"
+            inputRef={nameRef}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={setName}
+            suggestions={names}
             placeholder="z. B. Jamal Musiala"
           />
-          <datalist id="known-players">
-            {names.slice(0, 300).map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
           {name.trim().length >= 2 && (
             <a
               className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
