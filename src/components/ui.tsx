@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { CardVersion } from '../types'
 
@@ -186,5 +186,39 @@ export function PlayerAvatar({ name, color, size = 44 }: { name: string; color?:
     >
       {initials(name)}
     </span>
+  )
+}
+
+/** Einfaches Auswahlfeld (z. B. Sortierung, Filter), im gleichen Stil wie die Preisfelder */
+export function FieldSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+}) {
+  const id = useId()
+  return (
+    <div>
+      <label htmlFor={id} className="label">
+        {label}
+      </label>
+      <div className="relative">
+        <select id={id} className="field pr-10" value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-mute" aria-hidden="true">
+          &#x25BE;
+        </span>
+      </div>
+    </div>
   )
 }

@@ -117,3 +117,98 @@ describe('Statistik', () => {
     expect(p[1].profit).toBe(-1200 - 1200)
   })
 })
+
+import { LISTED_SORT_OPTIONS, SOLD_SORT_OPTIONS, sortListed, sortSold } from './sort'
+
+function listed(name: string, buy: number, buyNow: number, createdAt: string): Trade {
+  return {
+    id: name + createdAt,
+    user_id: 'u',
+    player_name: name,
+    card_version_id: null,
+    rating: 90,
+    chemstyle: 'Keiner',
+    buy_price: buy,
+    bid_price: null,
+    buy_now_price: buyNow,
+    status: 'listed',
+    sold_price: null,
+    sold_type: null,
+    sold_at: null,
+    created_at: createdAt,
+  }
+}
+
+describe('Sortierung offene Angebote', () => {
+  const trades: Trade[] = [
+    listed('Bravo', 5000, 9000, '2026-09-10T10:00:00.000Z'),
+    listed('alpha', 1000, 2000, '2026-09-12T10:00:00.000Z'),
+    listed('Charlie', 3000, 6000, '2026-09-11T10:00:00.000Z'),
+  ]
+
+  it('jede Option hat eine passende Sortierfunktion (kein Absturz, gleiche Länge)', () => {
+    for (const { value } of LISTED_SORT_OPTIONS) {
+      const result = sortListed(trades, value)
+      expect(result).toHaveLength(3)
+    }
+  })
+
+  it('Neueste zuerst = Standard', () => {
+    expect(sortListed(trades, 'created_desc').map((t) => t.player_name)).toEqual(['alpha', 'Charlie', 'Bravo'])
+  })
+  it('Älteste zuerst', () => {
+    expect(sortListed(trades, 'created_asc').map((t) => t.player_name)).toEqual(['Bravo', 'Charlie', 'alpha'])
+  })
+  it('Einkauf hoch -> niedrig', () => {
+    expect(sortListed(trades, 'buy_desc').map((t) => t.buy_price)).toEqual([5000, 3000, 1000])
+  })
+  it('Sofortkauf niedrig -> hoch', () => {
+    expect(sortListed(trades, 'buynow_asc').map((t) => t.buy_now_price)).toEqual([2000, 6000, 9000])
+  })
+  it('Name A-Z, unabhängig von Groß-/Kleinschreibung', () => {
+    expect(sortListed(trades, 'name_asc').map((t) => t.player_name)).toEqual(['alpha', 'Bravo', 'Charlie'])
+  })
+})
+
+function soldTrade(name: string, buy: number, price: number, soldAt: string): Trade {
+  return {
+    id: name + soldAt,
+    user_id: 'u',
+    player_name: name,
+    card_version_id: null,
+    rating: 90,
+    chemstyle: 'Keiner',
+    buy_price: buy,
+    bid_price: null,
+    buy_now_price: price,
+    status: 'sold',
+    sold_price: price,
+    sold_type: 'buy_now',
+    sold_at: soldAt,
+    created_at: soldAt,
+  }
+}
+
+describe('Sortierung Verkäufe', () => {
+  const trades: Trade[] = [
+    soldTrade('Bravo', 5000, 9000, '2026-09-10T10:00:00.000Z'), // Gewinn 3550
+    soldTrade('alpha', 1000, 2000, '2026-09-12T10:00:00.000Z'), // Gewinn 900
+    soldTrade('Charlie', 3000, 6000, '2026-09-11T10:00:00.000Z'), // Gewinn 2700
+  ]
+
+  it('jede Option hat eine passende Sortierfunktion (kein Absturz, gleiche Länge)', () => {
+    for (const { value } of SOLD_SORT_OPTIONS) {
+      expect(sortSold(trades, value)).toHaveLength(3)
+    }
+  })
+
+  it('Gewinn hoch -> niedrig', () => {
+    expect(sortSold(trades, 'profit_desc').map((t) => t.player_name)).toEqual(['Bravo', 'Charlie', 'alpha'])
+  })
+  it('Verkaufspreis niedrig -> hoch', () => {
+    expect(sortSold(trades, 'price_asc').map((t) => t.sold_price)).toEqual([2000, 6000, 9000])
+  })
+  it('Neueste zuerst = Standard', () => {
+    expect(sortSold(trades, 'sold_desc').map((t) => t.player_name)).toEqual(['alpha', 'Charlie', 'Bravo'])
+  })
+})

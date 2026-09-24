@@ -5,17 +5,20 @@ import { RebuySheet } from '../components/RebuySheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
 import { TradeForm } from '../components/TradeForm'
-import { Empty, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
+import { Empty, FieldSelect, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
 import { fmt, fmtSigned } from '../lib/format'
+import { LISTED_SORT_OPTIONS, sortListed, type ListedSortKey } from '../lib/sort'
 import { lockedCoins, potentialIfAllSold } from '../lib/stats'
 import type { Trade } from '../types'
 
 export default function Angebote() {
-  const { trades, updateTrade, deleteTrade } = useData()
+  const { trades, versions, updateTrade, deleteTrade } = useData()
   const run = useRun()
   const [q, setQ] = useState('')
+  const [sortKey, setSortKey] = useState<ListedSortKey>('created_desc')
+  const [versionFilter, setVersionFilter] = useState('all')
   const [limit, setLimit] = useState(25)
   const [sell, setSell] = useState<Trade | null>(null)
   const [edit, setEdit] = useState<Trade | null>(null)
@@ -23,10 +26,16 @@ export default function Angebote() {
   const [rebuy, setRebuy] = useState<Trade | null>(null)
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
+  const availableVersions = useMemo(() => {
+    const ids = new Set(all.map((t) => t.card_version_id).filter((id): id is string => id !== null))
+    return versions.filter((v) => ids.has(v.id))
+  }, [all, versions])
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase()
-    return term ? all.filter((t) => t.player_name.toLowerCase().includes(term)) : all
-  }, [all, q])
+    let list = term ? all.filter((t) => t.player_name.toLowerCase().includes(term)) : all
+    if (versionFilter !== 'all') list = list.filter((t) => t.card_version_id === versionFilter)
+    return sortListed(list, sortKey)
+  }, [all, q, versionFilter, sortKey])
   const potential = useMemo(() => potentialIfAllSold(trades), [trades])
 
   return (
@@ -55,10 +64,28 @@ export default function Angebote() {
       </div>
       <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
+        <div className="grid grid-cols-2 gap-3">
+          <FieldSelect
+            label="Sortieren"
+            value={sortKey}
+            onChange={(v) => setSortKey(v as ListedSortKey)}
+            options={LISTED_SORT_OPTIONS}
+          />
+          <FieldSelect
+            label="Version"
+            value={versionFilter}
+            onChange={setVersionFilter}
+            options={[{ value: 'all', label: 'Alle Versionen' }, ...availableVersions.map((v) => ({ value: v.id, label: v.name }))]}
+          />
+        </div>
         {shown.length === 0 ? (
           <Empty
-            title={q ? 'Kein Treffer' : 'Keine offenen Angebote'}
-            text={q ? 'Prüfe die Schreibweise.' : 'Neue Spieler trägst du unter "Eintragen" ein.'}
+            title={q || versionFilter !== 'all' ? 'Kein Treffer' : 'Keine offenen Angebote'}
+            text={
+              q || versionFilter !== 'all'
+                ? 'Prüfe Suche und Filter.'
+                : 'Neue Spieler trägst du unter "Eintragen" ein.'
+            }
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

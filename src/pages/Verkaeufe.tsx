@@ -1,39 +1,60 @@
 import { useMemo, useState } from 'react'
 import { ConfirmSheet } from '../components/BottomSheet'
 import { TradeCard } from '../components/TradeCard'
-import { Empty, MoreButton, PageTitle, SearchField } from '../components/ui'
+import { Empty, FieldSelect, MoreButton, PageTitle, SearchField } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
+import { SOLD_SORT_OPTIONS, sortSold, type SoldSortKey } from '../lib/sort'
 import type { Trade } from '../types'
 
 export default function Verkaeufe() {
-  const { trades, undoSale } = useData()
+  const { trades, versions, undoSale } = useData()
   const run = useRun()
   const [q, setQ] = useState('')
+  const [sortKey, setSortKey] = useState<SoldSortKey>('sold_desc')
+  const [versionFilter, setVersionFilter] = useState('all')
   const [limit, setLimit] = useState(25)
   const [undo, setUndo] = useState<Trade | null>(null)
 
-  const sold = useMemo(
-    () =>
-      trades
-        .filter((t) => t.status === 'sold' && t.sold_price != null)
-        .sort((a, b) => (b.sold_at ?? '').localeCompare(a.sold_at ?? '')),
-    [trades],
-  )
+  const sold = useMemo(() => trades.filter((t) => t.status === 'sold' && t.sold_price != null), [trades])
+  const availableVersions = useMemo(() => {
+    const ids = new Set(sold.map((t) => t.card_version_id).filter((id): id is string => id !== null))
+    return versions.filter((v) => ids.has(v.id))
+  }, [sold, versions])
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase()
-    return term ? sold.filter((t) => t.player_name.toLowerCase().includes(term)) : sold
-  }, [sold, q])
+    let list = term ? sold.filter((t) => t.player_name.toLowerCase().includes(term)) : sold
+    if (versionFilter !== 'all') list = list.filter((t) => t.card_version_id === versionFilter)
+    return sortSold(list, sortKey)
+  }, [sold, q, versionFilter, sortKey])
 
   return (
     <>
       <PageTitle sub={`${sold.length} verkaufte Spieler`}>Verkäufe</PageTitle>
       <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
+        <div className="grid grid-cols-2 gap-3">
+          <FieldSelect
+            label="Sortieren"
+            value={sortKey}
+            onChange={(v) => setSortKey(v as SoldSortKey)}
+            options={SOLD_SORT_OPTIONS}
+          />
+          <FieldSelect
+            label="Version"
+            value={versionFilter}
+            onChange={setVersionFilter}
+            options={[{ value: 'all', label: 'Alle Versionen' }, ...availableVersions.map((v) => ({ value: v.id, label: v.name }))]}
+          />
+        </div>
         {shown.length === 0 ? (
           <Empty
-            title={q ? 'Kein Treffer' : 'Noch keine Verkäufe'}
-            text={q ? 'Prüfe die Schreibweise.' : 'Verkäufe trägst du unter "Eintragen" ein.'}
+            title={q || versionFilter !== 'all' ? 'Kein Treffer' : 'Noch keine Verkäufe'}
+            text={
+              q || versionFilter !== 'all'
+                ? 'Prüfe Suche und Filter.'
+                : 'Verkäufe trägst du unter "Eintragen" ein.'
+            }
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
