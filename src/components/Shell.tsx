@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useData } from '../hooks/useData'
+import { BetaBanner } from './BetaBanner'
 import { Footer, Icon } from './ui'
 
 const TABS: { to: string; label: string; end?: boolean; icon: ReactNode }[] = [
@@ -56,6 +57,7 @@ function Sidebar() {
       <div className="mb-6 flex items-center gap-2.5 px-2">
         <img src="/icon-192.png" alt="" className="size-9 rounded-xl" />
         <span className="font-display text-lg font-bold text-coin">FC Trading</span>
+        <span className="rounded-full bg-raised px-2 py-0.5 text-[10px] font-bold text-mute">BETA</span>
       </div>
       <nav aria-label="Hauptnavigation" className="grid gap-1">
         {TABS.map((t) => (
@@ -118,6 +120,7 @@ export function Shell() {
     <div className="min-h-dvh md:flex">
       <Sidebar />
       <div className="flex min-h-dvh flex-1 flex-col pt-[env(safe-area-inset-top)] md:pt-0">
+        <BetaBanner />
         {offline && (
           <div role="status" className="bg-coin/15 px-4 py-2 text-center text-sm font-medium text-coin">
             Offline: zuletzt geladener Stand

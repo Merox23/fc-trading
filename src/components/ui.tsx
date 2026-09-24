@@ -112,6 +112,10 @@ export function Footer() {
     <footer className="mt-10 pb-2 text-center text-[13px] text-mute">
       <p>Inoffizielles Fan-Tool, nicht mit EA verbunden</p>
       <p className="mt-1">
+        Beta &middot; Fehler, Feedback oder Ideen? Schreib mir auf Discord:{' '}
+        <span className="text-ink">@_merox</span>
+      </p>
+      <p className="mt-1">
         <Link to="/impressum" className="inline-block px-3 py-2 underline underline-offset-2">
           Impressum
         </Link>
