@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmSheet, BottomSheet } from '../components/BottomSheet'
+import { RebuySheet } from '../components/RebuySheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
 import { TradeForm } from '../components/TradeForm'
@@ -19,6 +20,7 @@ export default function Angebote() {
   const [sell, setSell] = useState<Trade | null>(null)
   const [edit, setEdit] = useState<Trade | null>(null)
   const [del, setDel] = useState<Trade | null>(null)
+  const [rebuy, setRebuy] = useState<Trade | null>(null)
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
   const shown = useMemo(() => {
@@ -62,9 +64,12 @@ export default function Angebote() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {shown.slice(0, limit).map((t) => (
               <TradeCard key={t.id} trade={t}>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button className="btn btn-coin px-2 text-[15px]" onClick={() => setSell(t)}>
                     Verkauft
+                  </button>
+                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setRebuy(t)}>
+                    Nochmal einkaufen
                   </button>
                   <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setEdit(t)}>
                     Bearbeiten
@@ -81,6 +86,7 @@ export default function Angebote() {
       </div>
 
       <SaleSheet trade={sell} onClose={() => setSell(null)} />
+      <RebuySheet trade={rebuy} onClose={() => setRebuy(null)} />
 
       <BottomSheet open={edit !== null} onClose={() => setEdit(null)} title="Angebot bearbeiten">
         {edit && (
