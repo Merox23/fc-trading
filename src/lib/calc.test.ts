@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { netProceeds, profit, taxLoss } from './calc'
+import { netProceeds, profit, requiredSellPrice, taxLoss } from './calc'
 import { fmt, fmtSigned } from './format'
 import { lockedCoins, potentialIfAllSold, soldInRange, summarize, topByCount, topByPrice, topByProfit } from './stats'
 import type { Trade } from '../types'
@@ -262,5 +262,28 @@ describe('CSV-Export der Angebote', () => {
     ]
     const csv = buildAngeboteCsv(trades, versionById)
     expect(csv).toContain('"Müller; Thomas"')
+  })
+})
+
+describe('Rückwärts-Rechner: nötiger Verkaufspreis für Zielgewinn', () => {
+  it('einfache Fälle', () => {
+    expect(requiredSellPrice(10000, 1875)).toBe(12500) // Beispiel aus der README
+    expect(requiredSellPrice(0, 0)).toBe(0)
+    expect(requiredSellPrice(10000, 0)).toBeGreaterThan(0)
+  })
+
+  it('das Ergebnis ist immer minimal und erreicht garantiert mindestens den Zielgewinn', () => {
+    for (let buy = 0; buy <= 50000; buy += 137) {
+      for (const target of [0, 1, 500, 999, 1875, 10000, 123456]) {
+        const price = requiredSellPrice(buy, target)
+        expect(profit(price, buy)).toBeGreaterThanOrEqual(target)
+        if (price > 0) expect(profit(price - 1, buy)).toBeLessThan(target) // eins weniger reicht nicht
+      }
+    }
+  })
+
+  it('negativer oder null Zielwert (inkl. Verlust) liefert 0', () => {
+    expect(requiredSellPrice(10000, -10000)).toBe(0)
+    expect(requiredSellPrice(5000, -20000)).toBe(0)
   })
 })

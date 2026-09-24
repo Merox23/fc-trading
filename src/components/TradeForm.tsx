@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { CHEMSTYLES } from '../constants'
 import { useData } from '../hooks/useData'
+import { requiredSellPrice } from '../lib/calc'
+import { fmt } from '../lib/format'
 import type { Trade, TradeInput } from '../types'
 import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
@@ -47,6 +49,8 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
   const [buy, setBuy] = useState<number | null>(initial?.buy_price ?? null)
   const [bid, setBid] = useState<number | null>(initial?.bid_price ?? null)
   const [buyNow, setBuyNow] = useState<number | null>(initial?.buy_now_price ?? null)
+  const [showCalc, setShowCalc] = useState(false)
+  const [targetProfit, setTargetProfit] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
@@ -66,6 +70,7 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
     setBuy(null)
     setBid(null)
     setBuyNow(null)
+    setTargetProfit(null)
     setError('')
   }
 
@@ -209,6 +214,41 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
 
       <FormGroup step={2} title="Preise">
         <PriceInput label="Einkaufspreis" value={buy} onChange={setBuy} />
+
+        <div>
+          <button
+            type="button"
+            className="text-[14px] font-medium text-coin"
+            onClick={() => setShowCalc((s) => !s)}
+          >
+            {showCalc ? 'Rückwärts-Rechner ausblenden' : 'Rückwärts-Rechner: Zielgewinn → Preis'}
+          </button>
+          {showCalc && (
+            <div className="mt-2 grid gap-3 rounded-xl bg-raised p-3">
+              <PriceInput label="Zielgewinn" value={targetProfit} onChange={setTargetProfit} steps={[500, 1000, 5000]} />
+              {buy === null ? (
+                <p className="text-[13px] text-mute">Erst den Einkaufspreis oben eintragen.</p>
+              ) : (
+                targetProfit !== null && (
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[14px] text-mute">
+                      Nötiger Sofortkaufpreis:{' '}
+                      <span className="font-semibold text-ink tabular-nums">{fmt(requiredSellPrice(buy, targetProfit))}</span>
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-quiet shrink-0 px-3 text-[13px]"
+                      onClick={() => setBuyNow(requiredSellPrice(buy, targetProfit))}
+                    >
+                      Übernehmen
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
+
         <PriceInput label="Gebotspreis (Startpreis)" value={bid} onChange={setBid} />
         <PriceInput label="Sofortkaufpreis" value={buyNow} onChange={setBuyNow} />
       </FormGroup>
