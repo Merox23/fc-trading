@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { netProceeds, profit } from '../lib/calc'
-import { fmt, fmtDate, fmtSigned } from '../lib/format'
+import { daysSince, fmt, fmtDate, fmtDaysOpen, fmtSigned } from '../lib/format'
 import { useData } from '../hooks/useData'
 import type { Trade } from '../types'
 import { PlayerAvatar, VersionChip } from './ui'
@@ -79,6 +79,11 @@ export function TradeCard({ trade, onOpen, children }: { trade: Trade; onOpen?: 
         {isSold && trade.sold_at && (
           <p className="mt-2 text-[13px] text-mute">
             {trade.sold_type === 'buy_now' ? 'Sofortkauf' : 'Gebot'}, {fmtDate(trade.sold_at)}
+          </p>
+        )}
+        {!isSold && (
+          <p className={`mt-2 text-[13px] ${daysSince(trade.created_at) >= 3 ? 'font-medium text-coin' : 'text-mute'}`}>
+            {fmtDaysOpen(trade.created_at)}
           </p>
         )}
       </div>

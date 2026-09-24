@@ -212,3 +212,21 @@ describe('Sortierung Verkäufe', () => {
     expect(sortSold(trades, 'sold_desc').map((t) => t.player_name)).toEqual(['alpha', 'Charlie', 'Bravo'])
   })
 })
+
+import { daysSince, fmtDaysOpen } from './format'
+
+describe('Seit wann offen', () => {
+  const now = new Date(2026, 8, 24, 15, 0) // 24.09.2026, 15 Uhr
+
+  it('daysSince zählt Kalendertage, nicht 24h-Blöcke', () => {
+    expect(daysSince(new Date(2026, 8, 24, 23, 0).toISOString(), now)).toBe(0) // heute, auch spät abends
+    expect(daysSince(new Date(2026, 8, 23, 0, 1).toISOString(), now)).toBe(1) // gestern kurz nach Mitternacht
+    expect(daysSince(new Date(2026, 8, 20, 12, 0).toISOString(), now)).toBe(4)
+  })
+
+  it('fmtDaysOpen formatiert lesbar', () => {
+    expect(fmtDaysOpen(new Date(2026, 8, 24, 9, 0).toISOString(), now)).toBe('heute eingetragen')
+    expect(fmtDaysOpen(new Date(2026, 8, 23, 9, 0).toISOString(), now)).toBe('seit 1 Tag offen')
+    expect(fmtDaysOpen(new Date(2026, 8, 20, 9, 0).toISOString(), now)).toBe('seit 4 Tagen offen')
+  })
+})
