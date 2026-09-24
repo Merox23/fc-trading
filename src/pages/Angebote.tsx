@@ -9,12 +9,13 @@ import { Empty, FieldSelect, MoreButton, PageTitle, SearchField, Tile } from '..
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
 import { fmt, fmtSigned } from '../lib/format'
+import { buildAngeboteCsv, downloadTextFile } from '../lib/csv'
 import { LISTED_SORT_OPTIONS, sortListed, type ListedSortKey } from '../lib/sort'
 import { lockedCoins, potentialIfAllSold } from '../lib/stats'
 import type { Trade } from '../types'
 
 export default function Angebote() {
-  const { trades, versions, updateTrade, deleteTrade } = useData()
+  const { trades, versions, versionById, updateTrade, deleteTrade } = useData()
   const run = useRun()
   const [q, setQ] = useState('')
   const [sortKey, setSortKey] = useState<ListedSortKey>('created_desc')
@@ -40,14 +41,23 @@ export default function Angebote() {
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
-        {all.length > 0 && (
-          <Link to="/angebote/pdf" className="btn btn-quiet mt-1 shrink-0 px-4 text-[14px]">
+      <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
+      {all.length > 0 && (
+        <div className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <button
+            className="btn btn-quiet px-4 text-[14px]"
+            onClick={() => {
+              const date = new Date().toISOString().slice(0, 10)
+              downloadTextFile(`fc-trading-angebote-${date}.csv`, buildAngeboteCsv(all, versionById))
+            }}
+          >
+            Als CSV exportieren
+          </button>
+          <Link to="/angebote/pdf" className="btn btn-quiet px-4 text-[14px]">
             Als PDF exportieren
           </Link>
-        )}
-      </div>
+        </div>
+      )}
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
         <Tile

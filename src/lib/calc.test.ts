@@ -230,3 +230,37 @@ describe('Seit wann offen', () => {
     expect(fmtDaysOpen(new Date(2026, 8, 20, 9, 0).toISOString(), now)).toBe('seit 4 Tagen offen')
   })
 })
+
+import { buildAngeboteCsv } from './csv'
+
+describe('CSV-Export der Angebote', () => {
+  const versions = new Map([['v-gold', { id: 'v-gold', user_id: null, name: 'Gold', color: '#E5B93C' }]])
+  const versionById = (id: string | null) => (id ? versions.get(id) : undefined)
+
+  it('baut Kopfzeile und Datenzeilen mit Semikolon getrennt, inkl. BOM', () => {
+    const trades: Trade[] = [
+      {
+        id: 't1', user_id: 'u', player_name: 'Jamal Musiala', card_version_id: 'v-gold', rating: 91,
+        chemstyle: 'Hunter', buy_price: 10000, bid_price: 11000, buy_now_price: 12500,
+        status: 'listed', sold_price: null, sold_type: null, sold_at: null, created_at: new Date().toISOString(),
+      },
+    ]
+    const csv = buildAngeboteCsv(trades, versionById)
+    expect(csv.startsWith('\uFEFF')).toBe(true)
+    const lines = csv.slice(1).trim().split('\r\n')
+    expect(lines[0]).toBe('Spieler;Version;Rating;Chemstyle;Einkauf;Angebotspreis')
+    expect(lines[1]).toBe('Jamal Musiala;Gold;91;Hunter;10000;12500')
+  })
+
+  it('escaped Namen mit Semikolon korrekt', () => {
+    const trades: Trade[] = [
+      {
+        id: 't2', user_id: 'u', player_name: 'Müller; Thomas', card_version_id: null, rating: null,
+        chemstyle: 'Keiner', buy_price: 1000, bid_price: null, buy_now_price: null,
+        status: 'listed', sold_price: null, sold_type: null, sold_at: null, created_at: new Date().toISOString(),
+      },
+    ]
+    const csv = buildAngeboteCsv(trades, versionById)
+    expect(csv).toContain('"Müller; Thomas"')
+  })
+})
