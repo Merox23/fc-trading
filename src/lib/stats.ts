@@ -1,5 +1,6 @@
 import type { Trade } from '../types'
 import { netProceeds, profit, taxLoss } from './calc'
+import { daysBetween } from './format'
 
 export type Range = 'today' | '7d' | '30d' | 'all'
 
@@ -32,6 +33,21 @@ export function summarize(sold: Trade[]) {
     tax += taxLoss(p)
   }
   return { revenueNet, profit: totalProfit, tax, count: sold.length }
+}
+
+/** Ø-Gewinn pro Verkauf und Ø-Haltezeit (Tage zwischen Eintragen und Verkauf) */
+export function averages(sold: Trade[]): { avgProfit: number; avgHoldDays: number } {
+  if (sold.length === 0) return { avgProfit: 0, avgHoldDays: 0 }
+  let totalProfit = 0
+  let totalDays = 0
+  for (const t of sold) {
+    totalProfit += profit(t.sold_price ?? 0, t.buy_price)
+    totalDays += t.sold_at ? daysBetween(t.created_at, t.sold_at) : 0
+  }
+  return {
+    avgProfit: Math.round(totalProfit / sold.length),
+    avgHoldDays: totalDays / sold.length,
+  }
 }
 
 /** Summe der Einkaufspreise aller offenen Angebote */

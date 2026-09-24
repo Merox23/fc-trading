@@ -287,3 +287,58 @@ describe('Rückwärts-Rechner: nötiger Verkaufspreis für Zielgewinn', () => {
     expect(requiredSellPrice(5000, -20000)).toBe(0)
   })
 })
+
+import { averages } from './stats'
+import { fmtAvgDays, daysBetween } from './format'
+
+describe('daysBetween', () => {
+  it('rechnet in Kalendertagen', () => {
+    expect(daysBetween('2026-09-20T23:00:00.000Z', '2026-09-21T01:00:00.000Z')).toBe(1)
+    expect(daysBetween('2026-09-20T08:00:00.000Z', '2026-09-20T20:00:00.000Z')).toBe(0)
+    expect(daysBetween('2026-09-10T12:00:00.000Z', '2026-09-15T12:00:00.000Z')).toBe(5)
+  })
+})
+
+describe('fmtAvgDays', () => {
+  it('formatiert gerundete Durchschnitts-Tage', () => {
+    expect(fmtAvgDays(0)).toBe('am selben Tag')
+    expect(fmtAvgDays(0.4)).toBe('am selben Tag')
+    expect(fmtAvgDays(0.6)).toBe('1 Tag')
+    expect(fmtAvgDays(1)).toBe('1 Tag')
+    expect(fmtAvgDays(1.4)).toBe('1 Tag')
+    expect(fmtAvgDays(2.5)).toBe('3 Tage')
+    expect(fmtAvgDays(10)).toBe('10 Tage')
+  })
+})
+
+function soldOn(name: string, buy: number, price: number, createdAt: string, soldAt: string): Trade {
+  return {
+    id: name + soldAt, user_id: 'u', player_name: name, card_version_id: null, rating: 90,
+    chemstyle: 'Keiner', buy_price: buy, bid_price: null, buy_now_price: price,
+    status: 'sold', sold_price: price, sold_type: 'buy_now', sold_at: soldAt, created_at: createdAt,
+  }
+}
+
+describe('Durchschnittswerte (Ø-Gewinn, Ø-Haltezeit)', () => {
+  it('leere Liste ergibt 0', () => {
+    expect(averages([])).toEqual({ avgProfit: 0, avgHoldDays: 0 })
+  })
+
+  it('rechnet Durchschnitt über mehrere Verkäufe korrekt', () => {
+    const trades = [
+      soldOn('A', 10000, 12500, '2026-09-10T10:00:00.000Z', '2026-09-12T10:00:00.000Z'), // Gewinn 1875, 2 Tage
+      soldOn('B', 5000, 5000, '2026-09-10T10:00:00.000Z', '2026-09-10T10:00:00.000Z'), // Gewinn -250, 0 Tage
+      soldOn('C', 2000, 4000, '2026-09-01T10:00:00.000Z', '2026-09-11T10:00:00.000Z'), // Gewinn 1800, 10 Tage
+    ]
+    const r = averages(trades)
+    expect(r.avgProfit).toBe(Math.round((1875 - 250 + 1800) / 3))
+    expect(r.avgHoldDays).toBeCloseTo((2 + 0 + 10) / 3, 5)
+  })
+
+  it('ein einzelner Verkauf: Durchschnitt = der eine Wert', () => {
+    const trades = [soldOn('Solo', 1000, 2000, '2026-09-01T10:00:00.000Z', '2026-09-04T10:00:00.000Z')]
+    const r = averages(trades)
+    expect(r.avgProfit).toBe(900) // 2000*0.95 - 1000 = 900
+    expect(r.avgHoldDays).toBe(3)
+  })
+})

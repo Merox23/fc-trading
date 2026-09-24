@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { PageTitle, Segmented, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
-import { fmt, fmtDate, fmtSigned } from '../lib/format'
+import { fmt, fmtAvgDays, fmtDate, fmtSigned } from '../lib/format'
 import {
+  averages,
   lockedCoins,
   soldInRange,
   summarize,
@@ -42,6 +43,7 @@ export default function Statistik() {
 
   const sold = useMemo(() => soldInRange(trades, range), [trades, range])
   const sum = useMemo(() => summarize(sold), [sold])
+  const avg = useMemo(() => averages(sold), [sold])
   const openCount = useMemo(() => trades.filter((t) => t.status === 'listed').length, [trades])
   const byPrice = useMemo(() => topByPrice(sold), [sold])
   const byCount = useMemo(() => topByCount(sold), [sold])
@@ -70,6 +72,12 @@ export default function Statistik() {
         />
         <Tile label="Gezahlte EA-Steuer" value={fmt(sum.tax)} />
         <Tile label="Verkaufte Spieler" value={fmt(sum.count)} />
+        <Tile
+          label="Ø Gewinn pro Verkauf"
+          value={sum.count > 0 ? fmtSigned(avg.avgProfit) : '-'}
+          tone={avg.avgProfit > 0 ? 'text-good' : avg.avgProfit < 0 ? 'text-bad' : ''}
+        />
+        <Tile label="Ø Haltezeit" value={sum.count > 0 ? fmtAvgDays(avg.avgHoldDays) : '-'} sub="Kauf bis Verkauf" />
         <Tile
           wide
           label="Aktuell gebundene Coins"

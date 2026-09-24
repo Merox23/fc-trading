@@ -16,12 +16,26 @@ export const fmtSigned = (n: number): string =>
 
 export const fmtDate = (iso: string): string => df.format(new Date(iso))
 
+/** Ganze Kalendertage zwischen zwei Zeitpunkten (nicht 24h-Blöcke) */
+export function daysBetween(startIso: string, endIso: string): number {
+  const s = new Date(startIso)
+  const e = new Date(endIso)
+  const a = new Date(s.getFullYear(), s.getMonth(), s.getDate())
+  const b = new Date(e.getFullYear(), e.getMonth(), e.getDate())
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000)
+}
+
 /** Ganze Tage seit einem Zeitpunkt (lokale Kalendertage, nicht 24h-Blöcke) */
 export function daysSince(iso: string, now: Date = new Date()): number {
-  const then = new Date(iso)
-  const a = new Date(then.getFullYear(), then.getMonth(), then.getDate())
-  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000)
+  return daysBetween(iso, now.toISOString())
+}
+
+/** "am selben Tag" / "1 Tag" / "3 Tage" – für Durchschnittswerte gerundet */
+export function fmtAvgDays(days: number): string {
+  const rounded = Math.round(days)
+  if (rounded <= 0) return 'am selben Tag'
+  if (rounded === 1) return '1 Tag'
+  return `${rounded} Tage`
 }
 
 /** "heute" / "seit 1 Tag" / "seit 4 Tagen" */
