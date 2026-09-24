@@ -49,7 +49,7 @@ export default function Angebote() {
             className="min-h-9 rounded-lg px-3 text-[13px] font-medium text-mute active:bg-raised"
             onClick={() => setExportOpen(true)}
           >
-            Exportieren &#x2193;
+            Exportieren
           </button>
         </div>
       )}
