@@ -23,7 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           key={toast.id}
           role="status"
-          className="fade-anim pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-[60] flex justify-center px-4"
+          className="fade-anim pointer-events-none fixed inset-0 z-[60] flex items-center justify-center px-4"
         >
           <div
             className={`max-w-md rounded-xl px-4 py-3 text-[15px] font-semibold shadow-lg ${
