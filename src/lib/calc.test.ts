@@ -342,3 +342,29 @@ describe('Durchschnittswerte (Ø-Gewinn, Ø-Haltezeit)', () => {
     expect(r.avgHoldDays).toBe(3)
   })
 })
+
+import { topDaysByProfit } from './stats'
+
+describe('topDaysByProfit: Tage nach Gesamtgewinn geranked', () => {
+  it('summiert Gewinn pro Kalendertag und sortiert absteigend', () => {
+    const trades = [
+      soldTrade('A', 5000, 7000, '2026-09-10T09:00:00.000Z'), // Tag 10.9., Gewinn 1650
+      soldTrade('B', 3000, 4000, '2026-09-10T20:00:00.000Z'), // Tag 10.9., Gewinn 800 -> Summe 2450
+      soldTrade('C', 10000, 11000, '2026-09-12T10:00:00.000Z'), // Tag 12.9., Gewinn 450
+      soldTrade('D', 1000, 500, '2026-09-11T10:00:00.000Z'), // Tag 11.9., Gewinn -525
+    ]
+    const days = topDaysByProfit(trades)
+    expect(days).toHaveLength(3)
+    expect(days[0]).toMatchObject({ label: '10.09.2026', profit: 1650 + 800, count: 2 })
+    expect(days[1]).toMatchObject({ label: '12.09.2026', profit: 450, count: 1 })
+    expect(days[2]).toMatchObject({ label: '11.09.2026', profit: -525, count: 1 })
+  })
+
+  it('begrenzt auf n Ergebnisse und ignoriert Einträge ohne sold_at', () => {
+    const withNull = { ...soldTrade('X', 100, 200, '2026-09-01T00:00:00.000Z'), sold_at: null }
+    const many = Array.from({ length: 15 }, (_, i) =>
+      soldTrade(`P${i}`, 100, 300, new Date(2026, 8, i + 1, 10).toISOString()),
+    )
+    expect(topDaysByProfit([...many, withNull])).toHaveLength(10)
+  })
+})

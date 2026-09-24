@@ -102,3 +102,31 @@ export function topByProfit(sold: Trade[], n = 10): PlayerAgg[] {
     .sort((a, b) => b.profit - a.profit || b.count - a.count)
     .slice(0, n)
 }
+
+interface DayAgg {
+  label: string
+  profit: number
+  count: number
+}
+
+function localDayKey(iso: string): { key: string; label: string } {
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return { key: `${y}-${m}-${day}`, label: `${day}.${m}.${y}` }
+}
+
+/** Verkaufstage, absteigend nach Gesamtgewinn an diesem Tag sortiert */
+export function topDaysByProfit(sold: Trade[], n = 10): DayAgg[] {
+  const map = new Map<string, DayAgg>()
+  for (const t of sold) {
+    if (!t.sold_at) continue
+    const { key, label } = localDayKey(t.sold_at)
+    const agg = map.get(key) ?? { label, profit: 0, count: 0 }
+    agg.profit += profit(t.sold_price ?? 0, t.buy_price)
+    agg.count += 1
+    map.set(key, agg)
+  }
+  return [...map.values()].sort((a, b) => b.profit - a.profit || b.count - a.count).slice(0, n)
+}

@@ -10,6 +10,7 @@ import {
   topByCount,
   topByPrice,
   topByProfit,
+  topDaysByProfit,
   type Range,
 } from '../lib/stats'
 
@@ -48,6 +49,7 @@ export default function Statistik() {
   const byPrice = useMemo(() => topByPrice(sold), [sold])
   const byCount = useMemo(() => topByCount(sold), [sold])
   const byProfit = useMemo(() => topByProfit(sold), [sold])
+  const byDay = useMemo(() => topDaysByProfit(sold), [sold])
 
   return (
     <>
@@ -135,6 +137,27 @@ export default function Statistik() {
           </ol>
         )}
       </Section>
+      </div>
+
+      <div className="mt-6">
+        <Section title="Beste Tage nach Gewinn">
+          {byDay.length === 0 ? (
+            NONE
+          ) : (
+            <ol>
+              {byDay.map((d, i) => (
+                <Row
+                  key={d.label}
+                  rank={i + 1}
+                  title={d.label}
+                  sub={`${fmt(d.count)}x verkauft`}
+                  value={fmtSigned(d.profit)}
+                  tone={d.profit >= 0 ? 'text-good' : 'text-bad'}
+                />
+              ))}
+            </ol>
+          )}
+        </Section>
       </div>
     </>
   )
