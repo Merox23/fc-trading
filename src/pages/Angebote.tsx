@@ -61,7 +61,7 @@ export default function Angebote() {
           onClick={() => setStatsOpen((o) => !o)}
           aria-expanded={statsOpen}
         >
-          Coins, Erlös & Gewinn bei Sofortkauf aller Angebote
+          Coins & Gewinn bei Verkauf
           <Icon>
             <path d={statsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
           </Icon>
