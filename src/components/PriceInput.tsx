@@ -10,11 +10,13 @@ interface Props {
   steps?: number[]
   /** false: kein Runden auf Marktpreis-Stufen (z. B. bei einem frei wählbaren Zielwert statt einem echten Listenpreis) */
   snap?: boolean
+  /** Wird nach dem Runden mit dem neuen, gültigen Wert aufgerufen (z. B. um ein verknüpftes Feld anzupassen) */
+  onSnap?: (v: number) => void
 }
 
 /** Preisfeld mit Zahlen-Tastatur, Tausenderpunkten und Schnellbuttons.
  *  Rundet beim Verlassen des Felds und bei den Schnellbuttons auf gültige Marktpreis-Stufen. */
-export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000], snap = true }: Props) {
+export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000], snap = true, onSnap }: Props) {
   const id = useId()
   return (
     <div>
@@ -36,7 +38,11 @@ export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000]
             onChange(digits === '' ? null : Number(digits))
           }}
           onBlur={() => {
-            if (snap && value !== null) onChange(snapToNearestValidPrice(value))
+            if (snap && value !== null) {
+              const snapped = snapToNearestValidPrice(value)
+              onChange(snapped)
+              onSnap?.(snapped)
+            }
           }}
         />
         <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-coin">Coins</span>

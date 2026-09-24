@@ -30,6 +30,30 @@ export function snapToNearestValidPrice(value: number): number {
   return Math.min(bracket.max, bracket.min + steps * bracket.step)
 }
 
+/** Nächste gültige Stufe eine Position OBERHALB des Werts (für die Verknüpfung Gebot -> Sofortkauf) */
+export function nextStepAbove(value: number): number {
+  if (value <= 0) return 0
+  const aligned = snapToNearestValidPrice(value)
+  for (let i = 0; i < PRICE_BRACKETS.length; i++) {
+    const b = PRICE_BRACKETS[i]
+    if (aligned === b.max && PRICE_BRACKETS[i + 1]) return aligned + PRICE_BRACKETS[i + 1].step
+    if (aligned >= b.min && aligned < b.max) return Math.min(b.max, aligned + b.step)
+  }
+  return aligned // außerhalb der Tabelle (< 200 oder > 100.000): unverändert lassen
+}
+
+/** Nächste gültige Stufe eine Position UNTERHALB des Werts (für die Verknüpfung Sofortkauf -> Gebot) */
+export function nextStepBelow(value: number): number {
+  if (value <= 0) return 0
+  const aligned = snapToNearestValidPrice(value)
+  for (let i = PRICE_BRACKETS.length - 1; i >= 0; i--) {
+    const b = PRICE_BRACKETS[i]
+    if (aligned === b.min && PRICE_BRACKETS[i - 1]) return aligned - PRICE_BRACKETS[i - 1].step
+    if (aligned > b.min && aligned <= b.max) return Math.max(b.min, aligned - b.step)
+  }
+  return aligned // außerhalb der Tabelle (< 200 oder > 100.000): unverändert lassen
+}
+
 /** Rundet auf die nächste gültige Preisstufe nach OBEN (nie niedriger als value). Für den Rückwärts-Rechner, damit der Zielgewinn sicher erreicht wird. */
 export function snapUpToValidPrice(value: number): number {
   if (value <= 0) return 0

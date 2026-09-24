@@ -3,7 +3,7 @@ import { CHEMSTYLES } from '../constants'
 import { useData } from '../hooks/useData'
 import { requiredSellPrice } from '../lib/calc'
 import { fmt } from '../lib/format'
-import { snapUpToValidPrice } from '../lib/prices'
+import { nextStepAbove, nextStepBelow, snapUpToValidPrice } from '../lib/prices'
 import type { Trade, TradeInput } from '../types'
 import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
@@ -247,7 +247,11 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
                     <button
                       type="button"
                       className="btn btn-quiet shrink-0 px-3 text-[13px]"
-                      onClick={() => setBuyNow(snapUpToValidPrice(requiredSellPrice(buy, targetProfit)))}
+                      onClick={() => {
+                        const price = snapUpToValidPrice(requiredSellPrice(buy, targetProfit))
+                        setBuyNow(price)
+                        setBid(nextStepBelow(price))
+                      }}
                     >
                       Übernehmen
                     </button>
@@ -258,7 +262,12 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
           )}
         </div>
 
-        <PriceInput label="Gebotspreis (Startpreis)" value={bid} onChange={setBid} />
+        <PriceInput
+          label="Gebotspreis (Startpreis)"
+          value={bid}
+          onChange={setBid}
+          onSnap={(v) => setBuyNow(nextStepAbove(v))}
+        />
         <PriceInput label="Sofortkaufpreis" value={buyNow} onChange={setBuyNow} />
       </FormGroup>
 
