@@ -3,6 +3,7 @@ import { CHEMSTYLES } from '../constants'
 import { useData } from '../hooks/useData'
 import { requiredSellPrice } from '../lib/calc'
 import { fmt } from '../lib/format'
+import { snapUpToValidPrice } from '../lib/prices'
 import type { Trade, TradeInput } from '../types'
 import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
@@ -225,7 +226,13 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
           </button>
           {showCalc && (
             <div className="mt-2 grid gap-3 rounded-xl bg-raised p-3">
-              <PriceInput label="Zielgewinn" value={targetProfit} onChange={setTargetProfit} steps={[500, 1000, 5000]} />
+              <PriceInput
+                label="Zielgewinn"
+                value={targetProfit}
+                onChange={setTargetProfit}
+                steps={[500, 1000, 5000]}
+                snap={false}
+              />
               {buy === null ? (
                 <p className="text-[13px] text-mute">Erst den Einkaufspreis oben eintragen.</p>
               ) : (
@@ -233,12 +240,14 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[14px] text-mute">
                       Nötiger Sofortkaufpreis:{' '}
-                      <span className="font-semibold text-ink tabular-nums">{fmt(requiredSellPrice(buy, targetProfit))}</span>
+                      <span className="font-semibold text-ink tabular-nums">
+                        {fmt(snapUpToValidPrice(requiredSellPrice(buy, targetProfit)))}
+                      </span>
                     </p>
                     <button
                       type="button"
                       className="btn btn-quiet shrink-0 px-3 text-[13px]"
-                      onClick={() => setBuyNow(requiredSellPrice(buy, targetProfit))}
+                      onClick={() => setBuyNow(snapUpToValidPrice(requiredSellPrice(buy, targetProfit)))}
                     >
                       Übernehmen
                     </button>

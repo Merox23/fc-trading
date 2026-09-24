@@ -1,16 +1,20 @@
 import { useId } from 'react'
 import { MAX_PRICE } from '../constants'
 import { fmt } from '../lib/format'
+import { snapToNearestValidPrice } from '../lib/prices'
 
 interface Props {
   label: string
   value: number | null
   onChange: (v: number | null) => void
   steps?: number[]
+  /** false: kein Runden auf Marktpreis-Stufen (z. B. bei einem frei wählbaren Zielwert statt einem echten Listenpreis) */
+  snap?: boolean
 }
 
-/** Preisfeld mit Zahlen-Tastatur, Tausenderpunkten und Schnellbuttons */
-export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000] }: Props) {
+/** Preisfeld mit Zahlen-Tastatur, Tausenderpunkten und Schnellbuttons.
+ *  Rundet beim Verlassen des Felds und bei den Schnellbuttons auf gültige Marktpreis-Stufen. */
+export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000], snap = true }: Props) {
   const id = useId()
   return (
     <div>
@@ -31,6 +35,9 @@ export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000]
             const digits = e.target.value.replace(/\D/g, '').slice(0, 9)
             onChange(digits === '' ? null : Number(digits))
           }}
+          onBlur={() => {
+            if (snap && value !== null) onChange(snapToNearestValidPrice(value))
+          }}
         />
         <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-coin">Coins</span>
       </div>
@@ -40,7 +47,7 @@ export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000]
             key={s}
             type="button"
             className="btn btn-quiet px-0 text-[15px] tabular-nums"
-            onClick={() => onChange(Math.min((value ?? 0) + s, MAX_PRICE))}
+            onClick={() => onChange(snap ? snapToNearestValidPrice(Math.min((value ?? 0) + s, MAX_PRICE)) : Math.min((value ?? 0) + s, MAX_PRICE))}
           >
             +{fmt(s)}
           </button>
