@@ -25,6 +25,7 @@ export default function Angebote() {
   const [edit, setEdit] = useState<Trade | null>(null)
   const [del, setDel] = useState<Trade | null>(null)
   const [rebuy, setRebuy] = useState<Trade | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
   const availableVersions = useMemo(() => {
@@ -43,19 +44,13 @@ export default function Angebote() {
     <>
       <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
       {all.length > 0 && (
-        <div className="mb-5 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+        <div className="-mt-2 mb-4 flex justify-end">
           <button
-            className="btn btn-quiet px-4 text-[14px]"
-            onClick={() => {
-              const date = new Date().toISOString().slice(0, 10)
-              downloadTextFile(`fc-trading-angebote-${date}.csv`, buildAngeboteCsv(all, versionById))
-            }}
+            className="min-h-9 rounded-lg px-3 text-[13px] font-medium text-mute active:bg-raised"
+            onClick={() => setExportOpen(true)}
           >
-            Als CSV exportieren
+            Exportieren &#x2193;
           </button>
-          <Link to="/angebote/pdf" className="btn btn-quiet px-4 text-[14px]">
-            Als PDF exportieren
-          </Link>
         </div>
       )}
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -123,6 +118,24 @@ export default function Angebote() {
       </div>
 
       <SaleSheet trade={sell} onClose={() => setSell(null)} />
+
+      <BottomSheet open={exportOpen} onClose={() => setExportOpen(false)} title="Exportieren">
+        <div className="grid gap-3">
+          <button
+            className="btn btn-coin min-h-14"
+            onClick={() => {
+              const date = new Date().toISOString().slice(0, 10)
+              downloadTextFile(`fc-trading-angebote-${date}.csv`, buildAngeboteCsv(all, versionById))
+              setExportOpen(false)
+            }}
+          >
+            Als CSV
+          </button>
+          <Link to="/angebote/pdf" className="btn btn-quiet min-h-14" onClick={() => setExportOpen(false)}>
+            Als PDF
+          </Link>
+        </div>
+      </BottomSheet>
       <RebuySheet trade={rebuy} onClose={() => setRebuy(null)} />
 
       <BottomSheet open={edit !== null} onClose={() => setEdit(null)} title="Angebot bearbeiten">
