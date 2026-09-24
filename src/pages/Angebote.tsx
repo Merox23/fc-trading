@@ -5,7 +5,7 @@ import { RebuySheet } from '../components/RebuySheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
 import { TradeForm } from '../components/TradeForm'
-import { Empty, FieldSelect, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
+import { Empty, FieldSelect, Icon, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
 import { fmt, fmtSigned } from '../lib/format'
@@ -26,6 +26,7 @@ export default function Angebote() {
   const [del, setDel] = useState<Trade | null>(null)
   const [rebuy, setRebuy] = useState<Trade | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
   const availableVersions = useMemo(() => {
@@ -53,19 +54,34 @@ export default function Angebote() {
           </button>
         </div>
       )}
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
-        <Tile
-          label="Erlös bei Sofortkauf (netto)"
-          value={fmt(potential.revenueNet)}
-          sub="wenn alles verkauft wird"
-        />
-        <Tile
-          label="Gewinn bei Sofortkauf"
-          value={fmtSigned(potential.profit)}
-          tone={potential.profit >= 0 ? 'text-good' : 'text-bad'}
-          sub="wenn alles zum Sofortkaufpreis verkauft wird"
-        />
+      <div className="mb-5 rounded-2xl border border-line bg-card">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-4 py-3 text-left text-[15px] font-medium"
+          onClick={() => setStatsOpen((o) => !o)}
+          aria-expanded={statsOpen}
+        >
+          Übersicht (bei Sofortkauf)
+          <Icon>
+            <path d={statsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+          </Icon>
+        </button>
+        {statsOpen && (
+          <div className="grid grid-cols-1 gap-3 border-t border-line p-4 sm:grid-cols-3">
+            <Tile label="Gebundene Coins" value={fmt(lockedCoins(trades))} />
+            <Tile
+              label="Erlös bei Sofortkauf (netto)"
+              value={fmt(potential.revenueNet)}
+              sub="wenn alles verkauft wird"
+            />
+            <Tile
+              label="Gewinn bei Sofortkauf"
+              value={fmtSigned(potential.profit)}
+              tone={potential.profit >= 0 ? 'text-good' : 'text-bad'}
+              sub="wenn alles zum Sofortkaufpreis verkauft wird"
+            />
+          </div>
+        )}
       </div>
       <div className="grid gap-4">
         <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
