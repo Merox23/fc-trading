@@ -4,11 +4,14 @@ import { useData } from '../hooks/useData'
 import { requiredSellPrice } from '../lib/calc'
 import { fmt } from '../lib/format'
 import { nextStepAbove, nextStepBelow, snapUpToValidPrice } from '../lib/prices'
+import { buyPriceHistory } from '../lib/priceHistory'
 import type { Trade, TradeInput } from '../types'
 import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
+import { PriceHistoryChart, PriceHistoryList } from './PriceHistoryChart'
 import { Icon } from './ui'
 import { VersionSelect } from './VersionSelect'
+import { BottomSheet } from './BottomSheet'
 
 /** Gruppiert zusammengehörige Felder sichtbar, damit das Formular nicht als eine lange Liste wirkt */
 function FormGroup({ step, title, children }: { step: number; title: string; children: ReactNode }) {
@@ -52,6 +55,7 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
   const [bid, setBid] = useState<number | null>(initial?.bid_price ?? null)
   const [buyNow, setBuyNow] = useState<number | null>(initial?.buy_now_price ?? null)
   const [showCalc, setShowCalc] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [targetProfit, setTargetProfit] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -62,6 +66,9 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
     () => Array.from(new Set(trades.map((t) => t.player_name))).sort((a, b) => a.localeCompare(b, 'de')),
     [trades],
   )
+
+  // Bisherige Einkaufspreise für den aktuell eingetippten Namen (ohne den evtl. gerade bearbeiteten Eintrag selbst)
+  const priceHistory = useMemo(() => buyPriceHistory(trades, name, initial?.id), [trades, name, initial?.id])
 
   function reset() {
     setName('')
@@ -117,6 +124,7 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
   }
 
   return (
+    <>
     <form onSubmit={submit} className="grid gap-4 md:mx-auto md:max-w-4xl md:items-start lg:grid-cols-2" noValidate>
       <FormGroup step={1} title="Spielerdaten">
         <div>
@@ -140,6 +148,15 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
             >
               Bei Futbin nachschauen &#x2197;
             </a>
+          )}
+          {priceHistory.length > 0 && (
+            <button
+              type="button"
+              className="mt-1 flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
+              onClick={() => setShowHistory(true)}
+            >
+              Preishistorie
+            </button>
           )}
         </div>
 
@@ -313,5 +330,11 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
         </button>
       </div>
     </form>
+
+    <BottomSheet open={showHistory} onClose={() => setShowHistory(false)} title={`${name.trim()} – Preishistorie`}>
+      <PriceHistoryChart points={priceHistory} />
+      <PriceHistoryList points={priceHistory} />
+    </BottomSheet>
+    </>
   )
 }
