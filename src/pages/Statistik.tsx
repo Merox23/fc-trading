@@ -14,10 +14,10 @@ import {
   type Range,
 } from '../lib/stats'
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 font-display text-lg font-bold">{title}</h2>
+      {title && <h2 className="mb-2 font-display text-lg font-bold">{title}</h2>}
       <div className="tile !py-1">{children}</div>
     </section>
   )
@@ -38,9 +38,12 @@ function Row({ rank, title, sub, value, tone }: { rank: number; title: string; s
 
 const NONE = <p className="py-4 text-center text-[15px] text-mute">Keine Verkäufe in diesem Zeitraum.</p>
 
+type ListTab = 'price' | 'count' | 'profit' | 'days'
+
 export default function Statistik() {
   const { trades, versionById } = useData()
   const [range, setRange] = useState<Range>('7d')
+  const [listTab, setListTab] = useState<ListTab>('profit')
 
   const sold = useMemo(() => soldInRange(trades, range), [trades, range])
   const sum = useMemo(() => summarize(sold), [sold])
@@ -88,76 +91,95 @@ export default function Statistik() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3 lg:gap-4">
-      <Section title="Top Verkäufe nach Preis">
-        {byPrice.length === 0 ? (
-          NONE
-        ) : (
-          <ol>
-            {byPrice.map((t, i) => (
-              <Row
-                key={t.id}
-                rank={i + 1}
-                title={t.player_name}
-                sub={`${versionById(t.card_version_id)?.name ?? ''} ${t.sold_at ? fmtDate(t.sold_at) : ''}`.trim()}
-                value={fmt(t.sold_price ?? 0)}
-              />
-            ))}
-          </ol>
-        )}
-      </Section>
-
-      <Section title="Top Verkäufe nach Menge">
-        {byCount.length === 0 ? (
-          NONE
-        ) : (
-          <ol>
-            {byCount.map((p, i) => (
-              <Row key={p.name} rank={i + 1} title={p.name} value={`${fmt(p.count)}x`} />
-            ))}
-          </ol>
-        )}
-      </Section>
-
-      <Section title="Top nach Gewinn">
-        {byProfit.length === 0 ? (
-          NONE
-        ) : (
-          <ol>
-            {byProfit.map((p, i) => (
-              <Row
-                key={p.name}
-                rank={i + 1}
-                title={p.name}
-                sub={`${fmt(p.count)}x verkauft`}
-                value={fmtSigned(p.profit)}
-                tone={p.profit >= 0 ? 'text-good' : 'text-bad'}
-              />
-            ))}
-          </ol>
-        )}
-      </Section>
-      </div>
-
       <div className="mt-6">
-        <Section title="Beste Tage nach Gewinn">
-          {byDay.length === 0 ? (
-            NONE
-          ) : (
-            <ol>
-              {byDay.map((d, i) => (
-                <Row
-                  key={d.label}
-                  rank={i + 1}
-                  title={d.label}
-                  sub={`${fmt(d.count)}x verkauft`}
-                  value={fmtSigned(d.profit)}
-                  tone={d.profit >= 0 ? 'text-good' : 'text-bad'}
-                />
-              ))}
-            </ol>
+        <Segmented
+          value={listTab}
+          onChange={setListTab}
+          options={[
+            { value: 'price', label: 'Preis' },
+            { value: 'count', label: 'Menge' },
+            { value: 'profit', label: 'Gewinn' },
+            { value: 'days', label: 'Tage' },
+          ]}
+        />
+
+        <div className="mt-3">
+          {listTab === 'price' && (
+            <Section>
+              {byPrice.length === 0 ? (
+                NONE
+              ) : (
+                <ol>
+                  {byPrice.map((t, i) => (
+                    <Row
+                      key={t.id}
+                      rank={i + 1}
+                      title={t.player_name}
+                      sub={`${versionById(t.card_version_id)?.name ?? ''} ${t.sold_at ? fmtDate(t.sold_at) : ''}`.trim()}
+                      value={fmt(t.sold_price ?? 0)}
+                    />
+                  ))}
+                </ol>
+              )}
+            </Section>
           )}
-        </Section>
+
+          {listTab === 'count' && (
+            <Section>
+              {byCount.length === 0 ? (
+                NONE
+              ) : (
+                <ol>
+                  {byCount.map((p, i) => (
+                    <Row key={p.name} rank={i + 1} title={p.name} value={`${fmt(p.count)}x`} />
+                  ))}
+                </ol>
+              )}
+            </Section>
+          )}
+
+          {listTab === 'profit' && (
+            <Section>
+              {byProfit.length === 0 ? (
+                NONE
+              ) : (
+                <ol>
+                  {byProfit.map((p, i) => (
+                    <Row
+                      key={p.name}
+                      rank={i + 1}
+                      title={p.name}
+                      sub={`${fmt(p.count)}x verkauft`}
+                      value={fmtSigned(p.profit)}
+                      tone={p.profit >= 0 ? 'text-good' : 'text-bad'}
+                    />
+                  ))}
+                </ol>
+              )}
+            </Section>
+          )}
+
+          {listTab === 'days' && (
+            <Section>
+              {byDay.length === 0 ? (
+                NONE
+              ) : (
+                <ol>
+                  {byDay.map((d, i) => (
+                    <Row
+                      key={d.label}
+                      rank={i + 1}
+                      title={d.label}
+                      sub={`${fmt(d.count)}x verkauft`}
+                      value={fmtSigned(d.profit)}
+                      tone={d.profit >= 0 ? 'text-good' : 'text-bad'}
+                    />
+                  ))}
+                </ol>
+              )}
+            </Section>
+          )}
+        </div>
       </div>
     </>
   )

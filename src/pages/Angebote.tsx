@@ -5,7 +5,7 @@ import { RebuySheet } from '../components/RebuySheet'
 import { SaleSheet } from '../components/SaleSheet'
 import { TradeCard } from '../components/TradeCard'
 import { TradeForm } from '../components/TradeForm'
-import { Empty, FieldSelect, Icon, MoreButton, PageTitle, SearchField, Tile } from '../components/ui'
+import { Empty, FieldSelect, Icon, MoreButton, PageTitle, SearchField, SmallButton, Tile } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
 import { fmt, fmtSigned } from '../lib/format'
@@ -25,8 +25,12 @@ export default function Angebote() {
   const [edit, setEdit] = useState<Trade | null>(null)
   const [del, setDel] = useState<Trade | null>(null)
   const [rebuy, setRebuy] = useState<Trade | null>(null)
+  const [more, setMore] = useState<Trade | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+
+  const filterActive = q.trim() !== '' || versionFilter !== 'all' || sortKey !== 'created_desc'
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
   const availableVersions = useMemo(() => {
@@ -43,17 +47,16 @@ export default function Angebote() {
 
   return (
     <>
-      <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
-      {all.length > 0 && (
-        <div className="-mt-2 mb-4 flex justify-end">
-          <button
-            className="min-h-9 rounded-lg px-3 text-[13px] font-medium text-mute active:bg-raised"
-            onClick={() => setExportOpen(true)}
-          >
-            Exportieren
-          </button>
+      <div className="flex items-start justify-between gap-3">
+        <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
+        <div className="mt-1 flex shrink-0 gap-1">
+          <SmallButton active={filterActive} onClick={() => setFilterOpen(true)}>
+            Filtern
+          </SmallButton>
+          {all.length > 0 && <SmallButton onClick={() => setExportOpen(true)}>Exportieren</SmallButton>}
         </div>
-      )}
+      </div>
+
       <div className="mb-5 rounded-2xl border border-line bg-card">
         <button
           type="button"
@@ -83,9 +86,49 @@ export default function Angebote() {
           </div>
         )}
       </div>
+
       <div className="grid gap-4">
-        <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
-        <div className="grid grid-cols-2 gap-3">
+        {shown.length === 0 ? (
+          <Empty
+            title={filterActive ? 'Kein Treffer' : 'Keine offenen Angebote'}
+            text={filterActive ? 'Prüfe Suche und Filter.' : 'Neue Spieler trägst du unter "Eintragen" ein.'}
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {shown.slice(0, limit).map((t) => (
+              <TradeCard key={t.id} trade={t}>
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <button className="btn btn-coin px-2 text-[15px]" onClick={() => setSell(t)}>
+                    Verkauft
+                  </button>
+                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setRebuy(t)}>
+                    Nochmal einkaufen
+                  </button>
+                  <button
+                    className="btn btn-quiet px-3"
+                    onClick={() => setMore(t)}
+                    aria-label={`Weitere Aktionen für ${t.player_name}`}
+                  >
+                    <Icon>
+                      <circle cx="5.5" cy="12" r="1.4" />
+                      <circle cx="12" cy="12" r="1.4" />
+                      <circle cx="18.5" cy="12" r="1.4" />
+                    </Icon>
+                  </button>
+                </div>
+              </TradeCard>
+            ))}
+          </div>
+        )}
+        <MoreButton shown={Math.min(limit, shown.length)} total={shown.length} onMore={() => setLimit((l) => l + 25)} />
+      </div>
+
+      <SaleSheet trade={sell} onClose={() => setSell(null)} />
+      <RebuySheet trade={rebuy} onClose={() => setRebuy(null)} />
+
+      <BottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filtern">
+        <div className="grid gap-4">
+          <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
           <FieldSelect
             label="Sortieren"
             value={sortKey}
@@ -98,42 +141,20 @@ export default function Angebote() {
             onChange={setVersionFilter}
             options={[{ value: 'all', label: 'Alle Versionen' }, ...availableVersions.map((v) => ({ value: v.id, label: v.name }))]}
           />
+          {filterActive && (
+            <button
+              className="btn btn-quiet min-h-12"
+              onClick={() => {
+                setQ('')
+                setSortKey('created_desc')
+                setVersionFilter('all')
+              }}
+            >
+              Zurücksetzen
+            </button>
+          )}
         </div>
-        {shown.length === 0 ? (
-          <Empty
-            title={q || versionFilter !== 'all' ? 'Kein Treffer' : 'Keine offenen Angebote'}
-            text={
-              q || versionFilter !== 'all'
-                ? 'Prüfe Suche und Filter.'
-                : 'Neue Spieler trägst du unter "Eintragen" ein.'
-            }
-          />
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {shown.slice(0, limit).map((t) => (
-              <TradeCard key={t.id} trade={t}>
-                <div className="grid grid-cols-2 gap-2">
-                  <button className="btn btn-coin px-2 text-[15px]" onClick={() => setSell(t)}>
-                    Verkauft
-                  </button>
-                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setRebuy(t)}>
-                    Nochmal einkaufen
-                  </button>
-                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setEdit(t)}>
-                    Bearbeiten
-                  </button>
-                  <button className="btn btn-quiet px-2 text-[15px] text-bad" onClick={() => setDel(t)}>
-                    Löschen
-                  </button>
-                </div>
-              </TradeCard>
-            ))}
-          </div>
-        )}
-        <MoreButton shown={Math.min(limit, shown.length)} total={shown.length} onMore={() => setLimit((l) => l + 25)} />
-      </div>
-
-      <SaleSheet trade={sell} onClose={() => setSell(null)} />
+      </BottomSheet>
 
       <BottomSheet open={exportOpen} onClose={() => setExportOpen(false)} title="Exportieren">
         <div className="grid gap-3">
@@ -152,7 +173,29 @@ export default function Angebote() {
           </Link>
         </div>
       </BottomSheet>
-      <RebuySheet trade={rebuy} onClose={() => setRebuy(null)} />
+
+      <BottomSheet open={more !== null} onClose={() => setMore(null)} title={more?.player_name}>
+        <div className="grid gap-3">
+          <button
+            className="btn btn-quiet min-h-14"
+            onClick={() => {
+              setEdit(more)
+              setMore(null)
+            }}
+          >
+            Bearbeiten
+          </button>
+          <button
+            className="btn btn-quiet min-h-14 text-bad"
+            onClick={() => {
+              setDel(more)
+              setMore(null)
+            }}
+          >
+            Löschen
+          </button>
+        </div>
+      </BottomSheet>
 
       <BottomSheet open={edit !== null} onClose={() => setEdit(null)} title="Angebot bearbeiten">
         {edit && (

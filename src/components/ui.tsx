@@ -222,3 +222,25 @@ export function FieldSelect({
     </div>
   )
 }
+
+/** Kleiner, unaufdringlicher Button (z. B. "Filtern", "Exportieren") mit optionalem Punkt, wenn aktiv */
+export function SmallButton({
+  children,
+  onClick,
+  active,
+}: {
+  children: ReactNode
+  onClick: () => void
+  active?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      className="relative min-h-9 rounded-lg px-3 text-[13px] font-medium text-mute active:bg-raised"
+      onClick={onClick}
+    >
+      {children}
+      {active && <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-coin" aria-hidden="true" />}
+    </button>
+  )
+}

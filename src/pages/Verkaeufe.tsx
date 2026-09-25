@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { ConfirmSheet } from '../components/BottomSheet'
+import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
 import { TradeCard } from '../components/TradeCard'
-import { Empty, FieldSelect, MoreButton, PageTitle, SearchField } from '../components/ui'
+import { Empty, FieldSelect, MoreButton, PageTitle, SearchField, SmallButton } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
 import { SOLD_SORT_OPTIONS, sortSold, type SoldSortKey } from '../lib/sort'
@@ -15,6 +15,9 @@ export default function Verkaeufe() {
   const [versionFilter, setVersionFilter] = useState('all')
   const [limit, setLimit] = useState(25)
   const [undo, setUndo] = useState<Trade | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  const filterActive = q.trim() !== '' || versionFilter !== 'all' || sortKey !== 'sold_desc'
 
   const sold = useMemo(() => trades.filter((t) => t.status === 'sold' && t.sold_price != null), [trades])
   const availableVersions = useMemo(() => {
@@ -30,31 +33,20 @@ export default function Verkaeufe() {
 
   return (
     <>
-      <PageTitle sub={`${sold.length} verkaufte Spieler`}>Verkäufe</PageTitle>
-      <div className="grid gap-4">
-        <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
-        <div className="grid grid-cols-2 gap-3">
-          <FieldSelect
-            label="Sortieren"
-            value={sortKey}
-            onChange={(v) => setSortKey(v as SoldSortKey)}
-            options={SOLD_SORT_OPTIONS}
-          />
-          <FieldSelect
-            label="Version"
-            value={versionFilter}
-            onChange={setVersionFilter}
-            options={[{ value: 'all', label: 'Alle Versionen' }, ...availableVersions.map((v) => ({ value: v.id, label: v.name }))]}
-          />
+      <div className="flex items-start justify-between gap-3">
+        <PageTitle sub={`${sold.length} verkaufte Spieler`}>Verkäufe</PageTitle>
+        <div className="mt-1 shrink-0">
+          <SmallButton active={filterActive} onClick={() => setFilterOpen(true)}>
+            Filtern
+          </SmallButton>
         </div>
+      </div>
+
+      <div className="grid gap-4">
         {shown.length === 0 ? (
           <Empty
-            title={q || versionFilter !== 'all' ? 'Kein Treffer' : 'Noch keine Verkäufe'}
-            text={
-              q || versionFilter !== 'all'
-                ? 'Prüfe Suche und Filter.'
-                : 'Verkäufe trägst du unter "Eintragen" ein.'
-            }
+            title={filterActive ? 'Kein Treffer' : 'Noch keine Verkäufe'}
+            text={filterActive ? 'Prüfe Suche und Filter.' : 'Verkäufe trägst du unter "Eintragen" ein.'}
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -69,6 +61,36 @@ export default function Verkaeufe() {
         )}
         <MoreButton shown={Math.min(limit, shown.length)} total={shown.length} onMore={() => setLimit((l) => l + 25)} />
       </div>
+
+      <BottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filtern">
+        <div className="grid gap-4">
+          <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
+          <FieldSelect
+            label="Sortieren"
+            value={sortKey}
+            onChange={(v) => setSortKey(v as SoldSortKey)}
+            options={SOLD_SORT_OPTIONS}
+          />
+          <FieldSelect
+            label="Version"
+            value={versionFilter}
+            onChange={setVersionFilter}
+            options={[{ value: 'all', label: 'Alle Versionen' }, ...availableVersions.map((v) => ({ value: v.id, label: v.name }))]}
+          />
+          {filterActive && (
+            <button
+              className="btn btn-quiet min-h-12"
+              onClick={() => {
+                setQ('')
+                setSortKey('sold_desc')
+                setVersionFilter('all')
+              }}
+            >
+              Zurücksetzen
+            </button>
+          )}
+        </div>
+      </BottomSheet>
 
       <ConfirmSheet
         open={undo !== null}
