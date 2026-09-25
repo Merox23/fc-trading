@@ -5,15 +5,25 @@ import { TradeForm } from '../components/TradeForm'
 import { Empty, MoreButton, PageTitle, SearchField, Segmented } from '../components/ui'
 import { useData } from '../hooks/useData'
 import { useRun } from '../hooks/useToast'
+import { currentStreak } from '../lib/streak'
 import type { Trade } from '../types'
 
 type Tab = 'neu' | 'verkauf'
 
 export default function Eintragen() {
   const [tab, setTab] = useState<Tab>('neu')
+  const { trades } = useData()
+  const streak = useMemo(() => currentStreak(trades), [trades])
   return (
     <>
-      <PageTitle>Eintragen</PageTitle>
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <PageTitle>Eintragen</PageTitle>
+        {streak >= 1 && (
+          <span className="mb-4 inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full bg-coin/15 px-3 text-[13px] font-bold text-coin">
+            🔥 {streak} {streak === 1 ? 'Tag' : 'Tage'} in Folge
+          </span>
+        )}
+      </div>
       <div className="mb-5">
         <Segmented
           value={tab}

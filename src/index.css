@@ -85,3 +85,11 @@ select.field { appearance: none; background-image: none; }
   body::before { display: none !important; }
   .no-print { display: none !important; }
 }
+
+/* Farbthemen: überschreiben nur die Akzentfarbe (--color-coin), Rest der Palette bleibt gleich */
+:root[data-theme="blau"]    { --color-coin: #38BDF8; --color-on-coin: #0B1020; }
+:root[data-theme="gruen"]   { --color-coin: #34D399; --color-on-coin: #0B1020; }
+:root[data-theme="lila"]    { --color-coin: #A78BFA; --color-on-coin: #0B1020; }
+:root[data-theme="orange"]  { --color-coin: #FB923C; --color-on-coin: #0B1020; }
+:root[data-theme="pink"]    { --color-coin: #F472B6; --color-on-coin: #0B1020; }
+:root[data-theme="tuerkis"] { --color-coin: #22D3EE; --color-on-coin: #0B1020; }

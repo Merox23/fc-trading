@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useData } from '../hooks/useData'
 import { BetaBanner } from './BetaBanner'
+import { WeeklyRecapPopup } from './WeeklyRecapPopup'
 import { Footer, Icon } from './ui'
 
 const TABS: { to: string; label: string; end?: boolean; icon: ReactNode }[] = [
@@ -132,6 +133,7 @@ export function Shell() {
         </main>
         <MobileTabBar />
       </div>
+      <WeeklyRecapPopup />
     </div>
   )
 }

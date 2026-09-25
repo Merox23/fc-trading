@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { DataProvider } from './hooks/useData'
+import { ThemeProvider } from './hooks/useTheme'
 import { ToastProvider } from './hooks/useToast'
 import { configured } from './lib/supabase'
 import { Shell } from './components/Shell'
@@ -12,6 +13,7 @@ import Statistik from './pages/Statistik'
 import Mehr from './pages/Mehr'
 import Kartenversionen from './pages/Kartenversionen'
 import Konto from './pages/Konto'
+import Design from './pages/Design'
 import AngebotePdf from './pages/AngebotePdf'
 import { Datenschutz, Impressum } from './pages/Legal'
 
@@ -56,6 +58,7 @@ function Gate() {
           <Route path="mehr" element={<Mehr />} />
           <Route path="mehr/versionen" element={<Kartenversionen />} />
           <Route path="mehr/konto" element={<Konto />} />
+          <Route path="mehr/design" element={<Design />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -66,10 +69,12 @@ function Gate() {
 export default function App() {
   if (!configured) return <NotConfigured />
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <Gate />
-      </AuthProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Gate />
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   )
 }
