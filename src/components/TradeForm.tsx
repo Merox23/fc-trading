@@ -140,7 +140,7 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
             placeholder="z. B. Jamal Musiala"
           />
           {(name.trim().length >= 2 || priceHistory.length > 0) && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
               {name.trim().length >= 2 && (
                 <a
                   className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
@@ -150,6 +150,11 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
                 >
                   Bei Futbin nachschauen &#x2197;
                 </a>
+              )}
+              {name.trim().length >= 2 && priceHistory.length > 0 && (
+                <span className="text-mute" aria-hidden="true">
+                  |
+                </span>
               )}
               {priceHistory.length > 0 && (
                 <button
