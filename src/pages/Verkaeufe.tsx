@@ -17,7 +17,7 @@ export default function Verkaeufe() {
   const [undo, setUndo] = useState<Trade | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
 
-  const filterActive = q.trim() !== '' || versionFilter !== 'all' || sortKey !== 'sold_desc'
+  const filterActive = versionFilter !== 'all' || sortKey !== 'sold_desc'
 
   const sold = useMemo(() => trades.filter((t) => t.status === 'sold' && t.sold_price != null), [trades])
   const availableVersions = useMemo(() => {
@@ -35,18 +35,21 @@ export default function Verkaeufe() {
     <>
       <div className="flex items-start justify-between gap-3">
         <PageTitle sub={`${sold.length} verkaufte Spieler`}>Verkäufe</PageTitle>
-        <div className="mt-1 shrink-0">
+      </div>
+
+      <div className="grid gap-4">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
+          </div>
           <SmallButton active={filterActive} onClick={() => setFilterOpen(true)}>
             Filtern
           </SmallButton>
         </div>
-      </div>
-
-      <div className="grid gap-4">
         {shown.length === 0 ? (
           <Empty
-            title={filterActive ? 'Kein Treffer' : 'Noch keine Verkäufe'}
-            text={filterActive ? 'Prüfe Suche und Filter.' : 'Verkäufe trägst du unter "Eintragen" ein.'}
+            title={filterActive || q.trim() ? 'Kein Treffer' : 'Noch keine Verkäufe'}
+            text={filterActive || q.trim() ? 'Prüfe Suche und Filter.' : 'Verkäufe trägst du unter "Eintragen" ein.'}
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -64,7 +67,6 @@ export default function Verkaeufe() {
 
       <BottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filtern">
         <div className="grid gap-4">
-          <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
           <FieldSelect
             label="Sortieren"
             value={sortKey}
@@ -81,7 +83,6 @@ export default function Verkaeufe() {
             <button
               className="btn btn-quiet min-h-12"
               onClick={() => {
-                setQ('')
                 setSortKey('sold_desc')
                 setVersionFilter('all')
               }}

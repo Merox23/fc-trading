@@ -30,7 +30,7 @@ export default function Angebote() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
 
-  const filterActive = q.trim() !== '' || versionFilter !== 'all' || sortKey !== 'created_desc'
+  const filterActive = versionFilter !== 'all' || sortKey !== 'created_desc'
 
   const all = useMemo(() => trades.filter((t) => t.status === 'listed'), [trades])
   const availableVersions = useMemo(() => {
@@ -50,9 +50,6 @@ export default function Angebote() {
       <div className="flex items-start justify-between gap-3">
         <PageTitle sub={`${all.length} offen`}>Angebote</PageTitle>
         <div className="mt-1 flex shrink-0 gap-1">
-          <SmallButton active={filterActive} onClick={() => setFilterOpen(true)}>
-            Filtern
-          </SmallButton>
           {all.length > 0 && <SmallButton onClick={() => setExportOpen(true)}>Exportieren</SmallButton>}
         </div>
       </div>
@@ -88,10 +85,18 @@ export default function Angebote() {
       </div>
 
       <div className="grid gap-4">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
+          </div>
+          <SmallButton active={filterActive} onClick={() => setFilterOpen(true)}>
+            Filtern
+          </SmallButton>
+        </div>
         {shown.length === 0 ? (
           <Empty
-            title={filterActive ? 'Kein Treffer' : 'Keine offenen Angebote'}
-            text={filterActive ? 'Prüfe Suche und Filter.' : 'Neue Spieler trägst du unter "Eintragen" ein.'}
+            title={filterActive || q.trim() ? 'Kein Treffer' : 'Keine offenen Angebote'}
+            text={filterActive || q.trim() ? 'Prüfe Suche und Filter.' : 'Neue Spieler trägst du unter "Eintragen" ein.'}
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -128,7 +133,6 @@ export default function Angebote() {
 
       <BottomSheet open={filterOpen} onClose={() => setFilterOpen(false)} title="Filtern">
         <div className="grid gap-4">
-          <SearchField value={q} onChange={(v) => { setQ(v); setLimit(25) }} />
           <FieldSelect
             label="Sortieren"
             value={sortKey}
@@ -145,7 +149,6 @@ export default function Angebote() {
             <button
               className="btn btn-quiet min-h-12"
               onClick={() => {
-                setQ('')
                 setSortKey('created_desc')
                 setVersionFilter('all')
               }}
