@@ -7,6 +7,7 @@ import { nextStepAbove, nextStepBelow, snapUpToValidPrice } from '../lib/prices'
 import type { Trade, TradeInput } from '../types'
 import { NameAutocomplete } from './NameAutocomplete'
 import { PriceInput } from './PriceInput'
+import { Icon } from './ui'
 import { VersionSelect } from './VersionSelect'
 
 /** Gruppiert zusammengehörige Felder sichtbar, damit das Formular nicht als eine lange Liste wirkt */
@@ -219,9 +220,14 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
         <div>
           <button
             type="button"
-            className="text-[14px] font-medium text-coin"
+            className="btn btn-quiet min-h-11 w-full justify-start gap-2 px-3 text-[14px]"
             onClick={() => setShowCalc((s) => !s)}
+            aria-expanded={showCalc}
           >
+            <Icon>
+              <rect x="5" y="3" width="14" height="18" rx="2" />
+              <path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 14.5h2M12 14.5h2M16 14.5h0M8 18h2M12 18h2M16 18h0" />
+            </Icon>
             {showCalc ? 'Rückwärts-Rechner ausblenden' : 'Rückwärts-Rechner: Zielgewinn → Preis'}
           </button>
           {showCalc && (
