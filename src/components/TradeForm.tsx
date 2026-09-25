@@ -220,18 +220,34 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
         <div>
           <button
             type="button"
-            className="btn btn-quiet min-h-11 w-full flex-col items-start gap-0.5 px-3 py-2"
+            className={
+              showCalc
+                ? 'btn btn-quiet w-full justify-start gap-2 px-3 text-[14px]'
+                : 'btn btn-quiet w-full flex-col items-start justify-center gap-0.5 px-3 py-2'
+            }
             onClick={() => setShowCalc((s) => !s)}
             aria-expanded={showCalc}
           >
-            <span className="flex items-center gap-2 text-[14px]">
-              <Icon>
-                <rect x="5" y="3" width="14" height="18" rx="2" />
-                <path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 14.5h2M12 14.5h2M16 14.5h0M8 18h2M12 18h2M16 18h0" />
-              </Icon>
-              Rückwärts-Rechner{showCalc ? ' ausblenden' : ''}
-            </span>
-            {!showCalc && <span className="pl-8 text-[12px] font-normal text-mute">Zielgewinn → nötiger Preis</span>}
+            {showCalc ? (
+              <>
+                <Icon>
+                  <rect x="5" y="3" width="14" height="18" rx="2" />
+                  <path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 14.5h2M12 14.5h2M16 14.5h0M8 18h2M12 18h2M16 18h0" />
+                </Icon>
+                Rückwärts-Rechner ausblenden
+              </>
+            ) : (
+              <>
+                <span className="flex items-center gap-2 text-[14px]">
+                  <Icon>
+                    <rect x="5" y="3" width="14" height="18" rx="2" />
+                    <path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 14.5h2M12 14.5h2M16 14.5h0M8 18h2M12 18h2M16 18h0" />
+                  </Icon>
+                  Rückwärts-Rechner
+                </span>
+                <span className="pl-8 text-[12px] font-normal text-mute">Zielgewinn → nötiger Preis</span>
+              </>
+            )}
           </button>
           {showCalc && (
             <div className="mt-2 grid gap-3 rounded-xl bg-raised p-3">
