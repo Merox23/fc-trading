@@ -139,24 +139,28 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
             suggestions={names}
             placeholder="z. B. Jamal Musiala"
           />
-          {name.trim().length >= 2 && (
-            <a
-              className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
-              href={`https://www.futbin.com/27/players?search=${encodeURIComponent(name.trim())}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Bei Futbin nachschauen &#x2197;
-            </a>
-          )}
-          {priceHistory.length > 0 && (
-            <button
-              type="button"
-              className="mt-1 flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
-              onClick={() => setShowHistory(true)}
-            >
-              Preishistorie
-            </button>
+          {(name.trim().length >= 2 || priceHistory.length > 0) && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {name.trim().length >= 2 && (
+                <a
+                  className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
+                  href={`https://www.futbin.com/27/players?search=${encodeURIComponent(name.trim())}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Bei Futbin nachschauen &#x2197;
+                </a>
+              )}
+              {priceHistory.length > 0 && (
+                <button
+                  type="button"
+                  className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-coin"
+                  onClick={() => setShowHistory(true)}
+                >
+                  Preishistorie
+                </button>
+              )}
+            </div>
           )}
         </div>
 
