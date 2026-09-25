@@ -152,9 +152,7 @@ export function TradeForm({ initial, prefill, submitLabel, onSubmit, clearOnSucc
                 </a>
               )}
               {name.trim().length >= 2 && priceHistory.length > 0 && (
-                <span className="flex min-h-10 items-center font-bold text-coin" aria-hidden="true">
-                  |
-                </span>
+                <span className="h-4 w-[3px] rounded-full bg-coin" aria-hidden="true" />
               )}
               {priceHistory.length > 0 && (
                 <button
