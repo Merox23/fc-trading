@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
+import { RebuySheet } from '../components/RebuySheet'
 import { TradeCard } from '../components/TradeCard'
 import { Empty, FieldSelect, MoreButton, PageTitle, SearchField, SmallButton } from '../components/ui'
 import { useData } from '../hooks/useData'
@@ -15,6 +16,7 @@ export default function Verkaeufe() {
   const [versionFilter, setVersionFilter] = useState('all')
   const [limit, setLimit] = useState(25)
   const [undo, setUndo] = useState<Trade | null>(null)
+  const [rebuy, setRebuy] = useState<Trade | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
 
   const filterActive = versionFilter !== 'all' || sortKey !== 'sold_desc'
@@ -55,9 +57,14 @@ export default function Verkaeufe() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {shown.slice(0, limit).map((t) => (
               <TradeCard key={t.id} trade={t}>
-                <button className="btn btn-quiet w-full text-[15px]" onClick={() => setUndo(t)}>
-                  Verkauf rückgängig machen
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setRebuy(t)}>
+                    Nochmal einkaufen
+                  </button>
+                  <button className="btn btn-quiet px-2 text-[15px]" onClick={() => setUndo(t)}>
+                    Rückgängig
+                  </button>
+                </div>
               </TradeCard>
             ))}
           </div>
@@ -92,6 +99,8 @@ export default function Verkaeufe() {
           )}
         </div>
       </BottomSheet>
+
+      <RebuySheet trade={rebuy} onClose={() => setRebuy(null)} />
 
       <ConfirmSheet
         open={undo !== null}
