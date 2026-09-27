@@ -17,12 +17,23 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
 
   useEffect(() => {
     if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    // Hintergrund sperren, ohne die Scroll-Position zu verlieren (sonst springt iOS beim
+    // Entsperren an eine andere Stelle, siehe Nutzer-Feedback)
+    const scrollY = window.scrollY
+    const body = document.body.style
+    const prev = { overflow: body.overflow, position: body.position, top: body.top, width: body.width }
+    body.overflow = 'hidden'
+    body.position = 'fixed'
+    body.top = `-${scrollY}px`
+    body.width = '100%'
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => {
-      document.body.style.overflow = prev
+      body.overflow = prev.overflow
+      body.position = prev.position
+      body.top = prev.top
+      body.width = prev.width
+      window.scrollTo(0, scrollY)
       window.removeEventListener('keydown', onKey)
     }
   }, [open, onClose])
