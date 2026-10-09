@@ -261,19 +261,39 @@ export function correctName(name: string, known: string[]): string | null {
   return best?.name ?? null
 }
 
-/** Spieler aus dem Futbin-Lesezeichen in ÜV-Einträge umwandeln (Position entfernen, Version zuordnen) */
+/** ÜV-Eintrag aus dem Futbin-Lesezeichen, mit Fingerabdruck der Karte (für gelernte Versionen) */
+export interface FutbinDraft extends UevInput {
+  futbinKey?: string
+}
+
+/** Kurzer, stabiler Schlüssel für den Karten-Fingerabdruck (spielerbezogene Nummern fallen weg) */
+export function futbinKey(k: string): string {
+  const norm = k.toLowerCase().replace(/\d{3,}/g, '#').replace(/\s+/g, ' ').trim()
+  let h = 5381
+  for (let i = 0; i < norm.length; i++) h = ((h << 5) + h + norm.charCodeAt(i)) >>> 0
+  return h.toString(36)
+}
+
+/**
+ * Spieler aus dem Futbin-Lesezeichen in ÜV-Einträge umwandeln: Position entfernen und die Version
+ * zuordnen, zuerst über eine früher gewählte Version für denselben Fingerabdruck (`learned`),
+ * sonst über Stichwörter wie "gold" oder "totw" in Klassen und Bildnamen.
+ */
 export function fromFutbin(
   players: { n: string; r: number | null; c: string; k: string }[],
   versions: CardVersion[],
-): UevInput[] {
-  const out: UevInput[] = []
+  learned: Record<string, string> = {},
+): FutbinDraft[] {
+  const out: FutbinDraft[] = []
   for (const p of players) {
     const name = p.n.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim()
     if (!name) continue
     const rating = p.r != null && p.r >= 1 && p.r <= 99 ? p.r : null
-    // Klassennamen wie "card-gold-rare" oder "totw" in Wörter zerlegen
-    const version = findVersion(p.k.replace(/[-_]+/g, ' '), versions)
-    const item = { player_name: name, rating, club: p.c.trim(), card_version_id: version?.id ?? null }
+    const key = p.k ? futbinKey(p.k) : undefined
+    const remembered = key && versions.some((v) => v.id === learned[key]) ? learned[key] : null
+    // Klassen- und Bildnamen wie "card-gold-rare" oder "1_totw.png" in Wörter zerlegen
+    const version = remembered ?? findVersion(p.k.replace(/[-_.]+/g, ' '), versions)?.id ?? null
+    const item: FutbinDraft = { player_name: name, rating, club: p.c.trim(), card_version_id: version, futbinKey: key }
     if (!out.some((q) => isSameUev(q, item))) out.push(item)
   }
   return out
