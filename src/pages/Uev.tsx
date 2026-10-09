@@ -10,10 +10,32 @@ import { useUev } from '../hooks/useUev'
 import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
 import { bookmarkletCode, readPayloadFromHash } from '../lib/bookmarklet'
-import { correctName, findListedMatch, fromFutbin, isSameUev, parseUevText } from '../lib/uev'
+import { correctName, findListedMatch, fromFutbin, isSameUev, parseUevText, type FutbinDraft } from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
+
+// Gemerkte Versionen je Futbin-Karten-Fingerabdruck (nur in diesem Browser, reicht für den Import)
+const LEARNED_KEY = 'fc-uev-versions'
+
+function loadLearned(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(LEARNED_KEY) || '{}') as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+function learnVersion(futbinKey: string, versionId: string | null) {
+  try {
+    const map = loadLearned()
+    if (versionId) map[futbinKey] = versionId
+    else delete map[futbinKey]
+    localStorage.setItem(LEARNED_KEY, JSON.stringify(map))
+  } catch {
+    /* ohne Speicher wird nur nichts gemerkt */
+  }
+}
 
 export default function Uev() {
   const { session } = useAuth()
@@ -28,13 +50,13 @@ export default function Uev() {
   const [clearing, setClearing] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   // Vom Futbin-Lesezeichen mitgeschickte Spieler (#uev=… im Link)
-  const [incoming, setIncoming] = useState<UevInput[] | null>(null)
+  const [incoming, setIncoming] = useState<FutbinDraft[] | null>(null)
 
   useEffect(() => {
     const payload = readPayloadFromHash(window.location.hash)
     if (!payload) return
     history.replaceState(null, '', window.location.pathname)
-    const items = payload.players.length > 0 ? fromFutbin(payload.players, versions) : parseUevText(payload.text ?? '', versions)
+    const items = payload.players.length > 0 ? fromFutbin(payload.players, versions, loadLearned()) : parseUevText(payload.text ?? '', versions)
     setIncoming(items)
     setImportOpen(true)
     // nur einmal beim Öffnen über das Lesezeichen
@@ -299,7 +321,7 @@ function UevForm({
   )
 }
 
-interface Draft extends UevInput {
+interface Draft extends FutbinDraft {
   key: number
   /** Ursprünglich erkannter Name, wenn er mit einem deiner eingetragenen Spieler korrigiert wurde */
   read?: string
@@ -316,7 +338,7 @@ function ImportSheet({
 }: {
   open: boolean
   /** Spieler vom Futbin-Lesezeichen: direkt in die Vorschau */
-  incoming: UevInput[] | null
+  incoming: FutbinDraft[] | null
   onSetup: () => void
   onClose: () => void
   existing: UevPlayer[]
@@ -346,7 +368,7 @@ function ImportSheet({
     showDrafts(parseUevText(raw, versions))
   }
 
-  function showDrafts(parsed: UevInput[]) {
+  function showDrafts(parsed: FutbinDraft[]) {
     if (parsed.length === 0) {
       toast('Keine Spieler erkannt.', 'error')
       return
@@ -374,6 +396,13 @@ function ImportSheet({
 
   const patch = (key: number, p: Partial<UevInput>) =>
     setDrafts((d) => d && d.map((x) => (x.key === key ? { ...x, ...p } : x)))
+
+  // Version für eine Futbin-Karte gewählt: für alle Karten mit gleichem Fingerabdruck übernehmen und merken
+  function setVersion(d: Draft, versionId: string | null) {
+    if (!d.futbinKey) return patch(d.key, { card_version_id: versionId })
+    learnVersion(d.futbinKey, versionId)
+    setDrafts((list) => list && list.map((x) => (x.futbinKey === d.futbinKey ? { ...x, card_version_id: versionId } : x)))
+  }
 
   const valid = (drafts ?? []).filter((d) => d.player_name.trim())
   const fresh = valid.filter((d) => !existing.some((e) => isSameUev(e, d)))
@@ -431,11 +460,18 @@ function ImportSheet({
         </div>
       ) : (
         <div className="grid gap-3">
-          <p className="text-[14px] text-mute">
-            Prüfe die Einträge: Die Texterkennung verliest sich manchmal, und Ratings aus den kleinen Futbin-Karten
-            werden oft nicht erkannt. Störtext einfach mit ✕ entfernen. Spieler, die schon in deiner ÜV-Liste stehen,
-            werden übersprungen.
-          </p>
+          {drafts.some((d) => d.futbinKey) ? (
+            <p className="text-[14px] text-mute">
+              Prüfe die Einträge. Fehlt die Version, wähle sie bei einer Karte: Sie gilt dann für alle gleichen Karten
+              und wird für künftige Importe gemerkt. Spieler, die schon in deiner ÜV-Liste stehen, werden übersprungen.
+            </p>
+          ) : (
+            <p className="text-[14px] text-mute">
+              Prüfe die Einträge: Die Texterkennung verliest sich manchmal, und Ratings aus den kleinen Futbin-Karten
+              werden oft nicht erkannt. Störtext einfach mit ✕ entfernen. Spieler, die schon in deiner ÜV-Liste stehen,
+              werden übersprungen.
+            </p>
+          )}
           <ul className="grid gap-2">
             {drafts.map((d) => {
               const dup = existing.some((e) => isSameUev(e, d))
@@ -479,7 +515,7 @@ function ImportSheet({
                       className="field min-h-10 flex-1 px-2"
                       aria-label="Version"
                       value={d.card_version_id ?? ''}
-                      onChange={(e) => patch(d.key, { card_version_id: e.target.value || null })}
+                      onChange={(e) => setVersion(d, e.target.value || null)}
                     >
                       <option value="">Version …</option>
                       {versions.map((v) => (

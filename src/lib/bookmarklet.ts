@@ -12,7 +12,7 @@ export interface FutbinPlayer {
   r: number | null
   /** Verein, falls ein Vereinslogo mit Namen gefunden wurde */
   c: string
-  /** CSS-Klassen rund um das Rating (verraten oft die Kartenversion, z. B. "gold rare", "totw") */
+  /** Fingerabdruck der Karte rund um das Rating (Klassen, Farben, Kartenbilder), verrät die Version */
   k: string
 }
 
@@ -99,12 +99,32 @@ export function collectFromPage(doc: Document, choose: (question: string) => str
       }
     }
 
-    // Klassen rund um das Rating sammeln, daraus liest die App die Version
-    const classes: string[] = []
+    // "Fingerabdruck" der Karte rund um das Rating: Klassen, Farben, Hintergrund- und Kartenbilder.
+    // Daraus liest die App die Version (Stichwörter wie "gold", "totw") oder merkt sich, welche
+    // Version du für diesen Fingerabdruck gewählt hast.
+    const parts: string[] = []
+    const file = (url: string) => (url.split(/[?#]/)[0].split('/').pop() || '').slice(0, 60)
+    const win = doc.defaultView
     for (let e: Element | null = ratingEl, i = 0; e && i < 4 && e !== row.parentElement; e = e.parentElement, i++) {
-      classes.push(e.className && typeof e.className === 'string' ? e.className : '')
+      if (typeof e.className === 'string') parts.push(e.className)
+      for (const attr of Array.from(e.attributes)) {
+        if (/^data-/.test(attr.name) && /rar|level|version|type|card/i.test(attr.name)) parts.push(attr.name + '=' + attr.value)
+      }
+      if (win && i < 3) {
+        const cs = win.getComputedStyle(e)
+        const bg = cs.backgroundImage
+        if (bg && bg !== 'none') parts.push(/url\(/.test(bg) ? file(bg.replace(/^url\(["']?|["']?\)$/g, '')) : bg)
+        if (cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)) parts.push('bg:' + cs.backgroundColor)
+        parts.push('fg:' + cs.color)
+      }
+      if (i < 2) {
+        for (const img of Array.from(e.querySelectorAll('img'))) {
+          const src = img.getAttribute('src') || ''
+          if (src && !/player|club|nation|league|flag|face/i.test(src)) parts.push(file(src))
+        }
+      }
     }
-    return { n: name, r: rating, c: club, k: classes.join(' ').slice(0, 300) }
+    return { n: name, r: rating, c: club, k: parts.join(' ').slice(0, 600) }
   }
 
   let group = groups[0]

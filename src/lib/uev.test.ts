@@ -130,9 +130,18 @@ describe('Futbin-Lesezeichen', () => {
         ],
         VERSIONS,
       ),
-    ).toEqual([
+    ).toMatchObject([
       { player_name: 'Shaw', rating: 90, club: 'Manchester United', card_version_id: 'gold' },
       { player_name: 'Bruno Fernandes', rating: 89, club: '', card_version_id: 'totw' },
     ])
+  })
+  it('nimmt die früher gewählte Version für denselben Karten-Fingerabdruck', () => {
+    const [first] = fromFutbin([{ n: 'Shaw(ST)', r: 90, c: '', k: 'badge fg:rgb(60, 45, 10) c12345.png' }], VERSIONS)
+    expect(first.card_version_id).toBeNull()
+    const learned = { [first.futbinKey!]: 'hero' }
+    // gleicher Fingerabdruck, nur eine andere lange Nummer im Bildnamen
+    const [again] = fromFutbin([{ n: 'Banda(ST)', r: 88, c: '', k: 'badge fg:rgb(60, 45, 10) c67890.png' }], VERSIONS, learned)
+    expect(again.card_version_id).toBe('hero')
+    expect(fromFutbin([{ n: 'X', r: 80, c: '', k: 'other' }], VERSIONS, learned)[0].card_version_id).toBeNull()
   })
 })
