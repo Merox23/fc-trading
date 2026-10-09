@@ -108,8 +108,27 @@ function cleanName(s: string): string {
   return words.join(' ').replace(/^[\s'.-]+|[\s'.-]+$/g, '')
 }
 
+const PARTICLES = new Set(['de', 'da', 'di', 'do', 'dos', 'van', 'von', 'der', 'den', 'del', 'le', 'la', 'el', 'al', 'ter', 'ten'])
+const letterCount = (w: string) => (w.match(/\p{L}/gu) ?? []).length
+
+/**
+ * Für Texterkennung: Störzeichen um den Namen entfernen. Futbin zeigt "Kimmich(CDM)" und darunter
+ * Vereins- und Flaggen-Symbole, daraus macht die Erkennung Reste wie "x on Kimmich cou)" oder "qo. am".
+ * Übrig bleibt nur, was wie ein Name aussieht (mindestens ein großgeschriebenes Wort mit 3+ Buchstaben).
+ */
+function trimOcrJunk(name: string): string {
+  const words = name.split(' ')
+  const junk = (w: string, atEnd: boolean) =>
+    !/^\p{L}\.$/u.test(w) && // Initiale wie "K."
+    (letterCount(w) < 3 ? !(PARTICLES.has(w) && !atEnd) : /^\p{Ll}+$/u.test(w) && letterCount(w) <= 3 && !(PARTICLES.has(w) && !atEnd))
+  while (words.length && junk(words[0], false)) words.shift()
+  while (words.length && junk(words[words.length - 1], true)) words.pop()
+  const result = words.join(' ')
+  return /(^|\s)\p{Lu}[\p{L}'.-]{2,}/u.test(result) ? result : ''
+}
+
 // Überschriften und Menüpunkte aus Screenshots, keine Spieler
-const HEADER_RE = /\b(name|rating|ovr|pos|position|version|price|preis|players|spieler|futbin|club|verein|nation|liga|league)\b/i
+const HEADER_RE = /\b(name|rating|ovr|pos|position|version|price|preis|players|spieler|futbin|club|verein|nation|liga|league|list|filters?|order)\b/i
 
 const hasLetters = (s: string) => (s.match(/\p{L}/gu) ?? []).length >= 2
 
@@ -150,40 +169,42 @@ function parseLoose(line: string, versions: CardVersion[]): { name: string; rati
   const v = findVersion(text, versions)
   if (v) text = text.replace(new RegExp(escapeRe(v.match), 'i'), ' ')
   // alles ab der ersten Preisangabe weglassen
-  text = text.replace(/\d[\d.,]*\s?[kKmM]?\b.*$/, '')
-  return { name: cleanName(text), rating, versionId: v?.id ?? null }
+  text = text.replace(/(?<![\p{L}\d])(\d{1,3}([.,]\d{3})+|\d+([.,]\d+)?\s?[kKmM])(?!\p{L}).*$/u, '')
+  return { name: trimOcrJunk(cleanName(text)), rating, versionId: v?.id ?? null }
 }
 
 /**
  * Macht aus Text (Texterkennung oder eingefügt) eine Liste von Spielern.
- * Zeilen mit Tab, Semikolon oder "|" werden als Spalten gelesen (Name, Rating, Verein, Version),
+ * Zeilen mit Tab oder Semikolon werden als Spalten gelesen (Name, Rating, Verein, Version),
  * sonst wird pro Zeile Name + Rating + Version gesucht. Typische Screenshot-Layouts:
  * - Name und Rating in einer Zeile, Verein in der Zeile darunter
  * - Name allein, darunter Verein + Rating (dann ist der Text in der Rating-Zeile der Verein)
  * - Name allein, darunter nur das Rating
- * Zeilen ohne Rating, die keinem Spieler zugeordnet werden können (Überschriften, Menüs),
- * fallen weg, außer der ganze Text enthält gar kein Rating (reine Namensliste).
+ * - nur Namen (Futbin zeigt das Rating in einer kleinen Karte, die oft nicht lesbar ist)
+ * Überschriften und Symbol-Reste werden verworfen.
  */
 export function parseUevText(text: string, versions: CardVersion[]): UevInput[] {
   const out: UevInput[] = []
-  const namesOnly: UevInput[] = []
   let pending: { name: string; versionId: string | null } | null = null
   // letzter Spieler, dessen Name in derselben Zeile wie das Rating stand: die Zeile darunter ist sein Verein
   let clubFor: UevInput | null = null
+  const flush = () => {
+    if (pending) out.push({ player_name: pending.name, rating: null, club: '', card_version_id: pending.versionId })
+    pending = null
+  }
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
 
   for (const line of lines) {
-    if (/[\t;|]/.test(line)) {
-      pending = null
+    if (/[\t;]/.test(line)) {
+      flush()
       clubFor = null
-      const p = parseFields(line.split(/[\t;|]/), versions)
+      const p = parseFields(line.split(/[\t;]/), versions)
       if (p) out.push(p)
       continue
     }
     const { name, rating, versionId } = parseLoose(line, versions)
     if (rating == null && HEADER_RE.test(line)) continue
     const okName = hasLetters(name)
-    if (okName) namesOnly.push({ player_name: name, rating: null, club: '', card_version_id: versionId })
 
     if (okName && rating != null && pending) {
       out.push({ player_name: pending.name, rating, club: name, card_version_id: versionId ?? pending.versionId })
@@ -196,6 +217,7 @@ export function parseUevText(text: string, versions: CardVersion[]): UevInput[] 
       clubFor.club = name
       clubFor = null
     } else if (okName) {
+      flush()
       pending = { name, versionId }
     } else if (rating != null && pending) {
       out.push({ player_name: pending.name, rating, club: '', card_version_id: versionId ?? pending.versionId })
@@ -204,8 +226,37 @@ export function parseUevText(text: string, versions: CardVersion[]): UevInput[] 
       pending.versionId = versionId
     }
   }
+  flush()
 
-  const list = out.length > 0 ? out : namesOnly
   // doppelte Zeilen nur einmal übernehmen
-  return list.filter((p, i) => list.findIndex((q) => isSameUev(p, q)) === i)
+  return out.filter((p, i) => out.findIndex((q) => isSameUev(p, q)) === i)
+}
+
+/** Anzahl Tipp-Änderungen zwischen zwei Texten (Levenshtein) */
+function editDistance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+    }
+    prev = cur
+  }
+  return prev[b.length]
+}
+
+/**
+ * Lesefehler der Texterkennung ("Osimben", "Rablot") mit Namen korrigieren, die du schon
+ * eingetragen hast ("Osimhen", "Rabiot"). Erlaubt ist etwa ein Fehler pro 4 Buchstaben.
+ * Liefert den korrigierten Namen oder null, wenn nichts Passendes gefunden wurde.
+ */
+export function correctName(name: string, known: string[]): string | null {
+  const n = normalizeName(name)
+  if (n.length < 4 || known.some((k) => namesMatch(k, name))) return null
+  let best: { name: string; d: number } | null = null
+  for (const k of known) {
+    const d = editDistance(n, normalizeName(k))
+    if (d <= Math.ceil(n.length / 4) && (!best || d < best.d)) best = { name: k, d }
+  }
+  return best?.name ?? null
 }

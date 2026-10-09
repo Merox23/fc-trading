@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CardVersion, Trade } from '../types'
-import { findListedMatch, namesMatch, normalizeName, parseUevText } from './uev'
+import ocrEng from './__fixtures__/futbin-ocr.txt?raw'
+import ocrEngDeu from './__fixtures__/futbin-ocr-deu.txt?raw'
+import { correctName, findListedMatch, namesMatch, normalizeName, parseUevText } from './uev'
 
 const v = (id: string, name: string): CardVersion => ({ id, user_id: null, name, color: '#000000' })
 const VERSIONS = [v('gold', 'Gold'), v('icon', 'Icon'), v('hero', 'Hero'), v('totw', 'Team of the Week')]
@@ -86,5 +88,32 @@ describe('Liste auslesen', () => {
   })
   it('nimmt eine reine Namensliste, wenn nirgends ein Rating steht', () => {
     expect(parseUevText('Mbappé\nHaaland\nMbappe', VERSIONS).map((p) => p.player_name)).toEqual(['Mbappé', 'Haaland'])
+  })
+})
+
+describe('echter Futbin-Screenshot (Dark Mode, PC, 464 px breit)', () => {
+  // Tatsächliche Ausgabe der Texterkennung (eng bzw. eng+deu) nach dem Aufbereiten in ocr.ts
+  const PLAYERS = 'Shaw,Bruno Fernandes,Diaz,Banda,Kimmich,Hasegawa,Ona Batlle,Debinha,Marquinhos,Salah,Miedema,Hemp,Rodman,Martinez,Barella,Lavelle,Wirtz,Katoto,Carnesecchi,Gvardiol,Dybala,Laimer,Semenyo,Cascarino,Osimhen,Palmer,Svilar,Thuram,Rabiot,Kerolin Nicoli'.split(',')
+
+  for (const [label, text] of [['eng', ocrEng], ['eng+deu', ocrEngDeu]]) {
+    it(`findet die meisten Spieler (${label})`, () => {
+      const names = parseUevText(text, VERSIONS).map(
+        (p) => p.player_name,
+      )
+      // mit den eigenen Trades als Wörterbuch werden Lesefehler korrigiert
+      const fixed = names.map((n) => correctName(n, PLAYERS) ?? n)
+      const found = PLAYERS.filter((p) => fixed.some((n) => namesMatch(n, p)))
+      expect(found.length).toBeGreaterThanOrEqual(26)
+      expect(names.length - found.length).toBeLessThanOrEqual(6) // wenige Symbol-Reste, in der Vorschau löschbar
+      expect(names).not.toContain('Order By RAT POS VER Console Frice')
+    })
+  }
+
+  it('korrigiert Lesefehler nur mit ähnlichen bekannten Namen', () => {
+    expect(correctName('Osimben', PLAYERS)).toBe('Osimhen')
+    expect(correctName('Rablot', PLAYERS)).toBe('Rabiot')
+    expect(correctName('Kerolln Nicoll', PLAYERS)).toBe('Kerolin Nicoli')
+    expect(correctName('Shaw', PLAYERS)).toBeNull() // schon richtig
+    expect(correctName('Mbappé', PLAYERS)).toBeNull() // nichts Ähnliches
   })
 })

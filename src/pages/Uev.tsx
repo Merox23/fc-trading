@@ -9,7 +9,7 @@ import { useRun, useToast } from '../hooks/useToast'
 import { useUev } from '../hooks/useUev'
 import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
-import { findListedMatch, isSameUev, parseUevText } from '../lib/uev'
+import { correctName, findListedMatch, isSameUev, parseUevText } from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
@@ -272,6 +272,8 @@ function UevForm({
 
 interface Draft extends UevInput {
   key: number
+  /** Ursprünglich erkannter Name, wenn er mit einem deiner eingetragenen Spieler korrigiert wurde */
+  read?: string
 }
 
 /** Import: Screenshot (Texterkennung im Browser) oder eingefügter Text, danach Vorschau zum Korrigieren */
@@ -286,8 +288,9 @@ function ImportSheet({
   existing: UevPlayer[]
   onSave: (items: UevInput[]) => Promise<boolean>
 }) {
-  const { versions } = useData()
+  const { versions, trades } = useData()
   const toast = useToast()
+  const knownNames = useMemo(() => [...new Set(trades.map((t) => t.player_name))], [trades])
   const fileRef = useRef<HTMLInputElement>(null)
   const [text, setText] = useState('')
   const [progress, setProgress] = useState<number | null>(null)
@@ -307,7 +310,12 @@ function ImportSheet({
       toast('Keine Spieler erkannt. Versuche einen schärferen Screenshot oder füge den Text ein.', 'error')
       return
     }
-    setDrafts(parsed.map((p, i) => ({ ...p, key: i })))
+    setDrafts(
+      parsed.map((p, i) => {
+        const fixed = correctName(p.player_name, knownNames)
+        return fixed ? { ...p, player_name: fixed, read: p.player_name, key: i } : { ...p, key: i }
+      }),
+    )
   }
 
   async function onFiles(files: FileList | null) {
@@ -337,6 +345,9 @@ function ImportSheet({
             Futbin-Links kann die App nicht direkt lesen, Futbin blockiert das. Mach stattdessen einen{' '}
             <span className="text-ink">Screenshot</span> deiner Liste oder markiere die Tabelle auf Futbin und{' '}
             <span className="text-ink">kopiere den Text</span>.
+            <br />
+            Tipp: Vor dem Screenshot im Browser hineinzoomen (Strg und +). Je größer die Schrift, desto besser werden Namen
+            und Ratings erkannt.
           </div>
 
           <input
@@ -376,8 +387,9 @@ function ImportSheet({
       ) : (
         <div className="grid gap-3">
           <p className="text-[14px] text-mute">
-            Prüfe die Einträge und korrigiere sie bei Bedarf. Spieler, die schon in deiner ÜV-Liste stehen, werden
-            übersprungen.
+            Prüfe die Einträge: Die Texterkennung verliest sich manchmal, und Ratings aus den kleinen Futbin-Karten
+            werden oft nicht erkannt. Störtext einfach mit ✕ entfernen. Spieler, die schon in deiner ÜV-Liste stehen,
+            werden übersprungen.
           </p>
           <ul className="grid gap-2">
             {drafts.map((d) => {
@@ -432,6 +444,9 @@ function ImportSheet({
                       ))}
                     </select>
                   </div>
+                  {d.read && d.read !== d.player_name && (
+                    <p className="mt-1 text-[13px] text-mute">Erkannt als „{d.read}“, korrigiert nach deinen Trades</p>
+                  )}
                   {dup && <p className="mt-1 text-[13px] text-mute">Schon in der ÜV-Liste</p>}
                 </li>
               )
