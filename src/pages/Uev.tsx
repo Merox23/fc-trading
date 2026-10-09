@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
 import { TradeForm } from '../components/TradeForm'
 import { VersionSelect } from '../components/VersionSelect'
@@ -9,7 +9,8 @@ import { useRun, useToast } from '../hooks/useToast'
 import { useUev } from '../hooks/useUev'
 import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
-import { correctName, findListedMatch, isSameUev, parseUevText } from '../lib/uev'
+import { bookmarkletCode, readPayloadFromHash } from '../lib/bookmarklet'
+import { correctName, findListedMatch, fromFutbin, isSameUev, parseUevText } from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
@@ -17,7 +18,7 @@ type Filter = 'alle' | 'offen' | 'gekauft'
 export default function Uev() {
   const { session } = useAuth()
   const uev = useUev(session!.user.id)
-  const { trades, versionById, addTrade } = useData()
+  const { trades, versions, versionById, addTrade } = useData()
   const run = useRun()
   const [filter, setFilter] = useState<Filter>('alle')
   const [importOpen, setImportOpen] = useState(false)
@@ -25,6 +26,19 @@ export default function Uev() {
   const [editing, setEditing] = useState<UevPlayer | null>(null)
   const [buying, setBuying] = useState<UevPlayer | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [setupOpen, setSetupOpen] = useState(false)
+  // Vom Futbin-Lesezeichen mitgeschickte Spieler (#uev=… im Link)
+  const [incoming, setIncoming] = useState<UevInput[] | null>(null)
+
+  useEffect(() => {
+    const payload = readPayloadFromHash(window.location.hash)
+    if (!payload) return
+    history.replaceState(null, '', window.location.pathname)
+    const items = payload.players.length > 0 ? fromFutbin(payload.players, versions) : parseUevText(payload.text ?? '', versions)
+    setIncoming(items)
+    setImportOpen(true)
+    // nur einmal beim Öffnen über das Lesezeichen
+  }, [])
 
   // Abgleich läuft live: kaufst oder verkaufst du einen Spieler, ändert sich die Markierung sofort
   const rows = useMemo(
@@ -59,6 +73,9 @@ export default function Uev() {
         </button>
         <button className="btn btn-quiet" onClick={() => setAdding(true)}>
           Spieler hinzufügen
+        </button>
+        <button className="btn btn-quiet col-span-2" onClick={() => setSetupOpen(true)}>
+          Futbin-Button einrichten
         </button>
       </div>
 
@@ -132,10 +149,22 @@ export default function Uev() {
 
       <ImportSheet
         open={importOpen}
-        onClose={() => setImportOpen(false)}
+        incoming={incoming}
+        onSetup={() => {
+          setImportOpen(false)
+          setSetupOpen(true)
+        }}
+        onClose={() => {
+          setImportOpen(false)
+          setIncoming(null)
+        }}
         existing={uev.list}
         onSave={(items) => run(() => uev.addMany(items), `${items.length} Spieler übernommen`)}
       />
+
+      <BottomSheet open={setupOpen} onClose={() => setSetupOpen(false)} title="Futbin-Button einrichten">
+        <BookmarkletSetup />
+      </BottomSheet>
 
       <BottomSheet open={adding} onClose={() => setAdding(false)} title="Spieler hinzufügen">
         {adding && (
@@ -279,11 +308,16 @@ interface Draft extends UevInput {
 /** Import: Screenshot (Texterkennung im Browser) oder eingefügter Text, danach Vorschau zum Korrigieren */
 function ImportSheet({
   open,
+  incoming,
+  onSetup,
   onClose,
   existing,
   onSave,
 }: {
   open: boolean
+  /** Spieler vom Futbin-Lesezeichen: direkt in die Vorschau */
+  incoming: UevInput[] | null
+  onSetup: () => void
   onClose: () => void
   existing: UevPlayer[]
   onSave: (items: UevInput[]) => Promise<boolean>
@@ -304,10 +338,17 @@ function ImportSheet({
     onClose()
   }
 
+  useEffect(() => {
+    if (incoming) showDrafts(incoming)
+  }, [incoming])
+
   function preview(raw: string) {
-    const parsed = parseUevText(raw, versions)
+    showDrafts(parseUevText(raw, versions))
+  }
+
+  function showDrafts(parsed: UevInput[]) {
     if (parsed.length === 0) {
-      toast('Keine Spieler erkannt. Versuche einen schärferen Screenshot oder füge den Text ein.', 'error')
+      toast('Keine Spieler erkannt.', 'error')
       return
     }
     setDrafts(
@@ -342,13 +383,17 @@ function ImportSheet({
       {!drafts ? (
         <div className="grid gap-4">
           <div className="tile bg-raised text-[14px] leading-relaxed text-mute">
-            Futbin-Links kann die App nicht direkt lesen, Futbin blockiert das. Mach stattdessen einen{' '}
-            <span className="text-ink">Screenshot</span> deiner Liste oder markiere die Tabelle auf Futbin und{' '}
-            <span className="text-ink">kopiere den Text</span>.
-            <br />
-            Tipp: Vor dem Screenshot im Browser hineinzoomen (Strg und +). Je größer die Schrift, desto besser werden Namen
-            und Ratings erkannt.
+            <span className="font-semibold text-ink">Am genauesten:</span> der Futbin-Button. Ein Tipp darauf auf deiner
+            Futbin-Liste übernimmt Namen und Ratings direkt aus der Seite, ganz ohne Lesefehler.
+            <button className="btn btn-coin mt-3 w-full" onClick={onSetup}>
+              Futbin-Button einrichten
+            </button>
           </div>
+
+          <p className="text-[14px] text-mute">
+            Oder per Screenshot (Texterkennung, ungenauer). Tipp: Vorher im Browser hineinzoomen, je größer die Schrift,
+            desto besser.
+          </p>
 
           <input
             ref={fileRef}
@@ -358,7 +403,7 @@ function ImportSheet({
             className="hidden"
             onChange={(e) => void onFiles(e.target.files)}
           />
-          <button className="btn btn-coin min-h-14" disabled={progress != null} onClick={() => fileRef.current?.click()}>
+          <button className="btn btn-quiet min-h-14" disabled={progress != null} onClick={() => fileRef.current?.click()}>
             {progress == null ? 'Screenshot auswählen' : `Text wird erkannt … ${Math.round(progress * 100)} %`}
           </button>
           {progress != null && (
@@ -477,5 +522,90 @@ function ImportSheet({
         </div>
       )}
     </BottomSheet>
+  )
+}
+
+/** Anleitung und Code für das Futbin-Lesezeichen */
+function BookmarkletSetup() {
+  const toast = useToast()
+  const code = useMemo(() => bookmarkletCode(window.location.origin), [])
+  const linkRef = useRef<HTMLAnchorElement>(null)
+
+  // React erlaubt keine javascript:-Links als href, deshalb direkt am Element setzen
+  useEffect(() => {
+    linkRef.current?.setAttribute('href', code)
+  }, [code])
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      toast('Code kopiert')
+    } catch {
+      toast('Kopieren nicht möglich. Bitte den Code unten markieren und kopieren.', 'error')
+    }
+  }
+
+  return (
+    <div className="grid gap-5 text-[15px] leading-relaxed">
+      <p className="text-mute">
+        Der Button ist ein Lesezeichen in deinem Browser. Du öffnest deine Liste auf Futbin, tippst auf das Lesezeichen,
+        und die App öffnet sich mit den Spielern in der Vorschau. Einmal einrichten, dann immer wieder nutzen.
+      </p>
+
+      <section>
+        <h3 className="font-display text-lg font-bold">Am PC</h3>
+        <ol className="mt-1 list-decimal pl-5 text-mute">
+          <li>Lesezeichenleiste einblenden (Strg + Umschalt + B).</li>
+          <li>
+            Diesen Button in die Lesezeichenleiste ziehen:{' '}
+            <a
+              ref={linkRef}
+              className="btn btn-coin my-1 min-h-10 px-4 text-[15px]"
+              onClick={(e) => {
+                e.preventDefault()
+                toast('Nicht klicken, sondern in die Lesezeichenleiste ziehen.')
+              }}
+            >
+              ÜV-Import
+            </a>
+          </li>
+          <li>Auf Futbin deine Liste öffnen und in der Leiste auf „ÜV-Import“ klicken.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h3 className="font-display text-lg font-bold">Am Handy (iPhone Safari / Android Chrome)</h3>
+        <ol className="mt-1 list-decimal pl-5 text-mute">
+          <li>
+            <button className="btn btn-quiet my-1 min-h-10 px-4 text-[15px]" onClick={() => void copy()}>
+              Code kopieren
+            </button>
+          </li>
+          <li>Irgendeine Seite als Lesezeichen speichern (iPhone: Teilen → Lesezeichen hinzufügen) und „ÜV-Import“ nennen.</li>
+          <li>Das Lesezeichen bearbeiten, die Adresse komplett löschen und den kopierten Code einfügen.</li>
+          <li>
+            Auf Futbin deine Liste öffnen, oben in die Adressleiste „ÜV-Import“ tippen und den Lesezeichen-Vorschlag
+            antippen.
+          </li>
+        </ol>
+        <p className="mt-2 text-[13px] text-mute">
+          Die App öffnet sich dann im Browser. Beim ersten Mal musst du dich dort eventuell einmal anmelden.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="font-display text-lg font-bold">Gut zu wissen</h3>
+        <ul className="mt-1 list-disc pl-5 text-mute">
+          <li>Stehen mehrere Spielerlisten auf der Seite, fragt der Button, welche du übernehmen willst.</li>
+          <li>Hast du vorher etwas markiert, wird nur die Markierung übernommen.</li>
+          <li>Vor dem Speichern siehst du immer die Vorschau und kannst alles korrigieren.</li>
+        </ul>
+      </section>
+
+      <details className="text-[13px] text-mute">
+        <summary className="cursor-pointer">Code anzeigen</summary>
+        <textarea readOnly className="field mt-2 min-h-24 py-2 font-mono text-[12px]" value={code} onFocus={(e) => e.target.select()} />
+      </details>
+    </div>
   )
 }

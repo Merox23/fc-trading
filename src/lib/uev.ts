@@ -260,3 +260,21 @@ export function correctName(name: string, known: string[]): string | null {
   }
   return best?.name ?? null
 }
+
+/** Spieler aus dem Futbin-Lesezeichen in ÜV-Einträge umwandeln (Position entfernen, Version zuordnen) */
+export function fromFutbin(
+  players: { n: string; r: number | null; c: string; k: string }[],
+  versions: CardVersion[],
+): UevInput[] {
+  const out: UevInput[] = []
+  for (const p of players) {
+    const name = p.n.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!name) continue
+    const rating = p.r != null && p.r >= 1 && p.r <= 99 ? p.r : null
+    // Klassennamen wie "card-gold-rare" oder "totw" in Wörter zerlegen
+    const version = findVersion(p.k.replace(/[-_]+/g, ' '), versions)
+    const item = { player_name: name, rating, club: p.c.trim(), card_version_id: version?.id ?? null }
+    if (!out.some((q) => isSameUev(q, item))) out.push(item)
+  }
+  return out
+}

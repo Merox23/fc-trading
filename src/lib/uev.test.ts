@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CardVersion, Trade } from '../types'
 import ocrEng from './__fixtures__/futbin-ocr.txt?raw'
 import ocrEngDeu from './__fixtures__/futbin-ocr-deu.txt?raw'
-import { correctName, findListedMatch, namesMatch, normalizeName, parseUevText } from './uev'
+import { correctName, findListedMatch, fromFutbin, namesMatch, normalizeName, parseUevText } from './uev'
 
 const v = (id: string, name: string): CardVersion => ({ id, user_id: null, name, color: '#000000' })
 const VERSIONS = [v('gold', 'Gold'), v('icon', 'Icon'), v('hero', 'Hero'), v('totw', 'Team of the Week')]
@@ -115,5 +115,24 @@ describe('echter Futbin-Screenshot (Dark Mode, PC, 464 px breit)', () => {
     expect(correctName('Kerolln Nicoll', PLAYERS)).toBe('Kerolin Nicoli')
     expect(correctName('Shaw', PLAYERS)).toBeNull() // schon richtig
     expect(correctName('Mbappé', PLAYERS)).toBeNull() // nichts Ähnliches
+  })
+})
+
+describe('Futbin-Lesezeichen', () => {
+  it('entfernt die Position, ordnet die Version zu und überspringt Doppelte', () => {
+    expect(
+      fromFutbin(
+        [
+          { n: 'Shaw(ST)', r: 90, c: 'Manchester United', k: 'rating card-gold-rare' },
+          { n: 'Bruno Fernandes (CAM)', r: 89, c: '', k: 'ut-totw' },
+          { n: 'Shaw(ST)', r: 90, c: '', k: 'rating card-gold-rare' },
+          { n: '(GK)', r: 85, c: '', k: '' },
+        ],
+        VERSIONS,
+      ),
+    ).toEqual([
+      { player_name: 'Shaw', rating: 90, club: 'Manchester United', card_version_id: 'gold' },
+      { player_name: 'Bruno Fernandes', rating: 89, club: '', card_version_id: 'totw' },
+    ])
   })
 })

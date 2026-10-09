@@ -72,5 +72,5 @@ src/pages/               Login, Eintragen, Angebote, Verkaeufe, Statistik, Mehr,
 - Supabase verschickt im Free-Tarif nur wenige E-Mails pro Stunde (Passwort-Reset, Bestätigung).
 - Offline sichtbar ist der zuletzt geladene Stand. Eintragen, Verkaufen usw. braucht Internet.
 - Beim Abmelden werden die lokal zwischengespeicherten Daten gelöscht.
-- **ÜV-Liste** (*Mehr → ÜV-Liste*): Screenshot oder kopierten Text einer Futbin-Liste importieren. Die Texterkennung läuft kostenlos im Browser (Tesseract.js). Ein Spieler gilt als gekauft, solange er als offenes Angebot eingetragen ist (gleicher Name, Rating und Version). Nach dem Verkauf ist er wieder zum Nachkaufen frei.
+- **ÜV-Liste** (*Mehr → ÜV-Liste*): Futbin-Liste per Lesezeichen-Button (*Futbin-Button einrichten*, liest die Spieler direkt aus der Futbin-Seite), Screenshot oder kopiertem Text importieren. Die Texterkennung läuft kostenlos im Browser (Tesseract.js). Ein Spieler gilt als gekauft, solange er als offenes Angebot eingetragen ist (gleicher Name, Rating und Version). Nach dem Verkauf ist er wieder zum Nachkaufen frei.
 - Vercel Hobby ist für private, nicht kommerzielle Nutzung gedacht.
