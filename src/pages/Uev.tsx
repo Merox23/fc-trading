@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
 import { TradeForm } from '../components/TradeForm'
 import { VersionSelect } from '../components/VersionSelect'
@@ -10,7 +11,8 @@ import { useUev } from '../hooks/useUev'
 import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
 import { bookmarkletCode, readPayloadFromHash } from '../lib/bookmarklet'
-import { correctName, findListedMatch, findNearMatch, fromFutbin, isSameUev, parseUevText, type FutbinDraft } from '../lib/uev'
+import { buildUevCsv, buildUevText, downloadTextFile } from '../lib/csv'
+import { correctName, fromFutbin, isSameUev, parseUevText, uevStatus, type FutbinDraft } from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
@@ -49,6 +51,7 @@ export default function Uev() {
   const [buying, setBuying] = useState<UevPlayer | null>(null)
   const [clearing, setClearing] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   // Vom Futbin-Lesezeichen mitgeschickte Spieler (#uev=… im Link)
   const [incoming, setIncoming] = useState<FutbinDraft[] | null>(null)
 
@@ -63,13 +66,7 @@ export default function Uev() {
   }, [])
 
   // Abgleich läuft live: kaufst oder verkaufst du einen Spieler, ändert sich die Markierung sofort
-  const rows = useMemo(() => {
-    const versionName = (id: string | null) => versionById(id)?.name
-    return uev.list.map((u) => {
-      const match = findListedMatch(u, trades, versionName)
-      return { u, match, near: match ? undefined : findNearMatch(u, trades) }
-    })
-  }, [uev.list, trades, versionById])
+  const rows = useMemo(() => uevStatus(uev.list, trades, versionById), [uev.list, trades, versionById])
   const bought = rows.filter((r) => r.match).length
   const shown = rows.filter((r) => filter === 'alle' || (filter === 'gekauft') === !!r.match)
 
@@ -115,7 +112,10 @@ export default function Uev() {
             <p className="text-[15px] text-mute">
               <span className="font-semibold text-good">{bought}</span> von {rows.length} bereits gekauft
             </p>
-            <SmallButton onClick={() => setClearing(true)}>Liste leeren</SmallButton>
+            <div className="flex shrink-0">
+              <SmallButton onClick={() => setExportOpen(true)}>Exportieren</SmallButton>
+              <SmallButton onClick={() => setClearing(true)}>Liste leeren</SmallButton>
+            </div>
           </div>
           <div className="mb-4">
             <Segmented
@@ -201,6 +201,34 @@ export default function Uev() {
         existing={uev.list}
         onSave={(items) => run(() => uev.addMany(items), `${items.length} Spieler übernommen`)}
       />
+
+      <BottomSheet open={exportOpen} onClose={() => setExportOpen(false)} title="ÜV-Liste exportieren">
+        <div className="grid gap-3">
+          <button
+            className="btn btn-coin min-h-14"
+            onClick={() => {
+              const date = new Date().toISOString().slice(0, 10)
+              downloadTextFile(`fc-trading-uev-liste-${date}.csv`, buildUevCsv(rows, versionById))
+              setExportOpen(false)
+            }}
+          >
+            Als CSV (Excel)
+          </button>
+          <Link to="/mehr/uev/pdf" className="btn btn-quiet min-h-14" onClick={() => setExportOpen(false)}>
+            Als PDF
+          </Link>
+          <button
+            className="btn btn-quiet min-h-14"
+            onClick={async () => {
+              const ok = await run(() => navigator.clipboard.writeText(buildUevText(rows, versionById)), 'Liste kopiert')
+              if (ok) setExportOpen(false)
+            }}
+          >
+            Als Text kopieren
+          </button>
+          <p className="text-center text-[13px] text-mute">✓ = gekauft (steht unter Angebote), ○ = noch kaufen</p>
+        </div>
+      </BottomSheet>
 
       <BottomSheet open={setupOpen} onClose={() => setSetupOpen(false)} title="Futbin-Button einrichten">
         <BookmarkletSetup />

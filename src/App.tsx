@@ -15,6 +15,7 @@ import Kartenversionen from './pages/Kartenversionen'
 import Konto from './pages/Konto'
 import Design from './pages/Design'
 import Uev from './pages/Uev'
+import UevPdf from './pages/UevPdf'
 import AngebotePdf from './pages/AngebotePdf'
 import { Datenschutz, Impressum } from './pages/Legal'
 
@@ -51,6 +52,7 @@ function Gate() {
       <Routes>
         {legal}
         <Route path="/angebote/pdf" element={<AngebotePdf />} />
+        <Route path="/mehr/uev/pdf" element={<UevPdf />} />
         <Route element={<Shell />}>
           <Route index element={<Eintragen />} />
           <Route path="angebote" element={<Angebote />} />

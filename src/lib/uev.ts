@@ -333,3 +333,16 @@ export function fromFutbin(
   }
   return out
 }
+
+/** ÜV-Einträge mit Status: passendes offenes Angebot (gekauft) oder fast passendes (Hinweis) */
+export function uevStatus(
+  list: UevPlayer[],
+  trades: Trade[],
+  versionById: (id: string | null) => CardVersion | undefined,
+): { u: UevPlayer; match?: Trade; near?: Trade }[] {
+  const versionName = (id: string | null) => versionById(id)?.name
+  return list.map((u) => {
+    const match = findListedMatch(u, trades, versionName)
+    return { u, match, near: match ? undefined : findNearMatch(u, trades) }
+  })
+}
