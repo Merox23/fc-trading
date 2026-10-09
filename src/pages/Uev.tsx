@@ -584,10 +584,14 @@ function BookmarkletSetup() {
           <li>Irgendeine Seite als Lesezeichen speichern (iPhone: Teilen → Lesezeichen hinzufügen) und „ÜV-Import“ nennen.</li>
           <li>Das Lesezeichen bearbeiten, die Adresse komplett löschen und den kopierten Code einfügen.</li>
           <li>
-            Auf Futbin deine Liste öffnen, oben in die Adressleiste „ÜV-Import“ tippen und den Lesezeichen-Vorschlag
-            antippen.
+            Auf Futbin deine Liste öffnen, dann die Lesezeichen öffnen (iPhone: unten „•••“ → Lesezeichen) und dort
+            „ÜV-Import“ antippen.
           </li>
         </ol>
+        <p className="mt-2 text-[13px] text-mute">
+          Wichtig am iPhone: nicht über die Vorschläge der Adressleiste starten. Dann meldet Safari „Skript kann nicht
+          ausgeführt werden“.
+        </p>
         <p className="mt-2 text-[13px] text-mute">
           Die App öffnet sich dann im Browser. Beim ersten Mal musst du dich dort eventuell einmal anmelden.
         </p>
