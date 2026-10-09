@@ -1,4 +1,4 @@
-import type { CardVersion, Trade } from '../types'
+import type { CardVersion, Trade, UevPlayer } from '../types'
 
 /** Ein Feld für eine CSV-Zeile sicher escapen (Semikolon, Anführungszeichen, Zeilenumbrüche) */
 function csvField(value: string | number): string {
@@ -37,4 +37,29 @@ export function downloadTextFile(filename: string, content: string, mime = 'text
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+/** CSV der ÜV-Liste mit Status (gekauft = steht als offenes Angebot drin) */
+export function buildUevCsv(
+  rows: { u: UevPlayer; match?: Trade }[],
+  versionById: (id: string | null) => CardVersion | undefined,
+): string {
+  const header = csvRow(['Spieler', 'Rating', 'Verein', 'Version', 'Status'])
+  const lines = rows.map(({ u, match }) =>
+    csvRow([u.player_name, u.rating ?? '', u.club, versionById(u.card_version_id)?.name ?? '', match ? 'Gekauft' : 'Noch kaufen']),
+  )
+  return '﻿' + [header, ...lines].join('\r\n') + '\r\n'
+}
+
+/** ÜV-Liste als einfacher Text zum Teilen (z. B. in Discord oder Notizen) */
+export function buildUevText(
+  rows: { u: UevPlayer; match?: Trade }[],
+  versionById: (id: string | null) => CardVersion | undefined,
+): string {
+  return rows
+    .map(({ u, match }) => {
+      const details = [u.rating, versionById(u.card_version_id)?.name, u.club].filter(Boolean).join(' · ')
+      return `${match ? '✓' : '○'} ${u.player_name}${details ? ` (${details})` : ''}`
+    })
+    .join('\n')
 }
