@@ -14,6 +14,7 @@ import Mehr from './pages/Mehr'
 import Kartenversionen from './pages/Kartenversionen'
 import Konto from './pages/Konto'
 import Design from './pages/Design'
+import Uev from './pages/Uev'
 import AngebotePdf from './pages/AngebotePdf'
 import { Datenschutz, Impressum } from './pages/Legal'
 
@@ -59,6 +60,7 @@ function Gate() {
           <Route path="mehr/versionen" element={<Kartenversionen />} />
           <Route path="mehr/konto" element={<Konto />} />
           <Route path="mehr/design" element={<Design />} />
+          <Route path="mehr/uev" element={<Uev />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

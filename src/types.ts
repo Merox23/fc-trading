@@ -29,3 +29,16 @@ export type TradeInput = Pick<
   Trade,
   'player_name' | 'card_version_id' | 'rating' | 'chemstyle' | 'buy_price' | 'bid_price' | 'buy_now_price'
 >
+
+/** Eintrag der ÜV-Liste: ein Spieler, den du einkaufen und überteuert anbieten willst */
+export interface UevPlayer {
+  id: string
+  user_id: string
+  player_name: string
+  rating: number | null
+  club: string
+  card_version_id: string | null
+  created_at: string
+}
+
+export type UevInput = Pick<UevPlayer, 'player_name' | 'rating' | 'club' | 'card_version_id'>

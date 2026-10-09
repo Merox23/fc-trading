@@ -28,6 +28,7 @@ export default function Mehr() {
     <>
       <PageTitle>Mehr</PageTitle>
       <div className="grid gap-3 md:max-w-md">
+        <Item to="/mehr/uev" title="ÜV-Liste" sub="Futbin-Liste importieren und abhaken, was du schon hast" />
         <Item to="/mehr/versionen" title="Kartenversionen" sub="Eigene Spezialkarten mit Farbe anlegen" />
         <Item to="/mehr/design" title="Design" sub="Akzentfarbe der App wählen" />
         <Item to="/mehr/konto" title="Konto" sub="Passwort ändern oder Konto löschen" />

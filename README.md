@@ -7,7 +7,7 @@ Nicht mit EA verbunden, ohne EA-Logos oder Spielerbilder.
 
 ## Einrichten in 5 Schritten
 
-1. **Supabase:** Projekt anlegen (Region Frankfurt). Unter *SQL Editor → New query* den Inhalt von `supabase/001_init.sql` einfügen und *Run* drücken.
+1. **Supabase:** Projekt anlegen (Region Frankfurt). Unter *SQL Editor → New query* den Inhalt von `supabase/001_init.sql` einfügen und *Run* drücken. Danach genauso `supabase/002_uev.sql` (ÜV-Liste).
 2. **Dein Konto:** *Authentication → Users → Add user → Create new user*, E-Mail und Passwort eintragen, "Auto Confirm User" anhaken.
 3. **GitHub:** Diesen Ordner als Repository hochladen.
 4. **Vercel:** *Add New → Project*, Repository wählen. Vor dem Deploy unter *Environment Variables* eintragen:
@@ -59,6 +59,7 @@ npm run dev
 
 ```
 supabase/001_init.sql    Tabellen, Zugriffsregeln (RLS), Standardversionen, Konto-löschen-Funktion
+supabase/002_uev.sql     Tabelle für die ÜV-Liste
 src/lib/                 calc.ts (Steuer/Gewinn) · stats.ts (Statistik) · format.ts · supabase.ts
 src/hooks/               useAuth · useData (Laden, Speichern, Offline-Stand) · useToast
 src/components/          Shell/Tab-Leiste, BottomSheet, PriceInput, TradeForm, TradeCard, SaleSheet
@@ -71,4 +72,5 @@ src/pages/               Login, Eintragen, Angebote, Verkaeufe, Statistik, Mehr,
 - Supabase verschickt im Free-Tarif nur wenige E-Mails pro Stunde (Passwort-Reset, Bestätigung).
 - Offline sichtbar ist der zuletzt geladene Stand. Eintragen, Verkaufen usw. braucht Internet.
 - Beim Abmelden werden die lokal zwischengespeicherten Daten gelöscht.
+- **ÜV-Liste** (*Mehr → ÜV-Liste*): Screenshot oder kopierten Text einer Futbin-Liste importieren. Die Texterkennung läuft kostenlos im Browser (Tesseract.js). Ein Spieler gilt als gekauft, solange er als offenes Angebot eingetragen ist (gleicher Name, Rating und Version). Nach dem Verkauf ist er wieder zum Nachkaufen frei.
 - Vercel Hobby ist für private, nicht kommerzielle Nutzung gedacht.
