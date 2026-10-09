@@ -1,0 +1,466 @@
+import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
+import { TradeForm } from '../components/TradeForm'
+import { VersionSelect } from '../components/VersionSelect'
+import { Empty, PageTitle, PlayerAvatar, Segmented, SmallButton, VersionChip } from '../components/ui'
+import { useAuth } from '../hooks/useAuth'
+import { useData } from '../hooks/useData'
+import { useRun, useToast } from '../hooks/useToast'
+import { useUev } from '../hooks/useUev'
+import { errMsg } from '../lib/errors'
+import { recognizeImages } from '../lib/ocr'
+import { findListedMatch, isSameUev, parseUevText } from '../lib/uev'
+import type { UevInput, UevPlayer } from '../types'
+
+type Filter = 'alle' | 'offen' | 'gekauft'
+
+export default function Uev() {
+  const { session } = useAuth()
+  const uev = useUev(session!.user.id)
+  const { trades, versionById, addTrade } = useData()
+  const run = useRun()
+  const [filter, setFilter] = useState<Filter>('alle')
+  const [importOpen, setImportOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<UevPlayer | null>(null)
+  const [buying, setBuying] = useState<UevPlayer | null>(null)
+  const [clearing, setClearing] = useState(false)
+
+  // Abgleich läuft live: kaufst oder verkaufst du einen Spieler, ändert sich die Markierung sofort
+  const rows = useMemo(
+    () => uev.list.map((u) => ({ u, match: findListedMatch(u, trades) })),
+    [uev.list, trades],
+  )
+  const bought = rows.filter((r) => r.match).length
+  const shown = rows.filter((r) => filter === 'alle' || (filter === 'gekauft') === !!r.match)
+
+  if (uev.loading) return <p className="py-20 text-center text-mute">Lädt …</p>
+
+  return (
+    <>
+      <PageTitle sub="Spieler, die du einkaufen und überteuert anbieten willst">ÜV-Liste</PageTitle>
+
+      {uev.error != null && (
+        <div className="tile mb-4 border-bad/50 text-[15px]">
+          <p className="font-semibold text-bad">ÜV-Liste konnte nicht geladen werden</p>
+          <p className="mt-1 text-mute">{errMsg(uev.error)}</p>
+          <p className="mt-1 text-mute">
+            Falls die Tabelle fehlt: <code>supabase/002_uev.sql</code> im Supabase SQL Editor ausführen.
+          </p>
+          <button className="btn btn-quiet mt-3" onClick={() => void uev.refresh()}>
+            Erneut versuchen
+          </button>
+        </div>
+      )}
+
+      <div className="mb-4 grid grid-cols-2 gap-3 md:max-w-md">
+        <button className="btn btn-coin" onClick={() => setImportOpen(true)}>
+          Liste importieren
+        </button>
+        <button className="btn btn-quiet" onClick={() => setAdding(true)}>
+          Spieler hinzufügen
+        </button>
+      </div>
+
+      {rows.length === 0 ? (
+        <Empty
+          title="Noch keine Spieler"
+          text="Importiere einen Screenshot deiner Futbin-Liste oder füge Spieler von Hand hinzu."
+        />
+      ) : (
+        <>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[15px] text-mute">
+              <span className="font-semibold text-good">{bought}</span> von {rows.length} bereits gekauft
+            </p>
+            <SmallButton onClick={() => setClearing(true)}>Liste leeren</SmallButton>
+          </div>
+          <div className="mb-4">
+            <Segmented
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: 'alle', label: 'Alle' },
+                { value: 'offen', label: 'Noch kaufen' },
+                { value: 'gekauft', label: 'Gekauft' },
+              ]}
+            />
+          </div>
+          {shown.length === 0 ? (
+            <Empty title={filter === 'gekauft' ? 'Noch nichts gekauft' : 'Alles gekauft'} />
+          ) : (
+            <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {shown.map(({ u, match }) => {
+                const version = versionById(u.card_version_id)
+                return (
+                  <li key={u.id} className={`tile flex items-center gap-3 ${match ? 'border-good/40' : ''}`}>
+                    <button
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      onClick={() => setEditing(u)}
+                      aria-label={`${u.player_name} bearbeiten`}
+                    >
+                      <PlayerAvatar name={u.player_name} color={version?.color} />
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-lg font-bold">{u.player_name}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-mute">
+                          {u.rating != null && (
+                            <span className="rounded-md bg-raised px-1.5 py-0.5 text-[14px] font-bold tabular-nums text-ink">
+                              {u.rating}
+                            </span>
+                          )}
+                          {version && <VersionChip version={version} />}
+                          {u.club && <span className="truncate">{u.club}</span>}
+                        </div>
+                      </div>
+                    </button>
+                    {match ? (
+                      <span className="shrink-0 rounded-full bg-good/15 px-3 py-1.5 text-[13px] font-bold text-good">
+                        ✓ Gekauft
+                      </span>
+                    ) : (
+                      <button className="btn btn-quiet min-h-10 shrink-0 px-4 text-[15px]" onClick={() => setBuying(u)}>
+                        Kaufen
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
+      )}
+
+      <ImportSheet
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        existing={uev.list}
+        onSave={(items) => run(() => uev.addMany(items), `${items.length} Spieler übernommen`)}
+      />
+
+      <BottomSheet open={adding} onClose={() => setAdding(false)} title="Spieler hinzufügen">
+        {adding && (
+          <UevForm
+            submitLabel="Hinzufügen"
+            onSubmit={async (v) => {
+              const ok = await run(() => uev.addMany([v]), 'Hinzugefügt')
+              if (ok) setAdding(false)
+            }}
+          />
+        )}
+      </BottomSheet>
+
+      <BottomSheet open={!!editing} onClose={() => setEditing(null)} title="Spieler bearbeiten">
+        {editing && (
+          <>
+            <UevForm
+              key={editing.id}
+              initial={editing}
+              submitLabel="Speichern"
+              onSubmit={async (v) => {
+                const ok = await run(() => uev.update(editing.id, v), 'Gespeichert')
+                if (ok) setEditing(null)
+              }}
+            />
+            <button
+              className="btn btn-ghost mt-2 w-full text-bad"
+              onClick={async () => {
+                const ok = await run(() => uev.remove([editing.id]), 'Entfernt')
+                if (ok) setEditing(null)
+              }}
+            >
+              Aus der ÜV-Liste entfernen
+            </button>
+          </>
+        )}
+      </BottomSheet>
+
+      {buying && (
+        <BottomSheet open onClose={() => setBuying(null)} title={`${buying.player_name} einkaufen`}>
+          <TradeForm
+            submitLabel="Einkaufen"
+            prefill={{ player_name: buying.player_name, card_version_id: buying.card_version_id, rating: buying.rating }}
+            onSubmit={async (v) => {
+              const ok = await run(() => addTrade(v), 'Eingekauft')
+              if (ok) setBuying(null)
+              return ok
+            }}
+          />
+        </BottomSheet>
+      )}
+
+      <ConfirmSheet
+        open={clearing}
+        title="ÜV-Liste leeren?"
+        text="Alle Spieler der ÜV-Liste werden entfernt. Deine Angebote und Verkäufe bleiben unverändert."
+        confirmLabel="Liste leeren"
+        danger
+        onClose={() => setClearing(false)}
+        onConfirm={async () => {
+          const ok = await run(() => uev.remove(uev.list.map((u) => u.id)), 'ÜV-Liste geleert')
+          if (ok) setClearing(false)
+        }}
+      />
+    </>
+  )
+}
+
+/** Einzelnen Spieler von Hand anlegen oder bearbeiten */
+function UevForm({
+  initial,
+  submitLabel,
+  onSubmit,
+}: {
+  initial?: UevInput
+  submitLabel: string
+  onSubmit: (v: UevInput) => Promise<void>
+}) {
+  const id = useId()
+  const [name, setName] = useState(initial?.player_name ?? '')
+  const [rating, setRating] = useState(initial?.rating != null ? String(initial.rating) : '')
+  const [club, setClub] = useState(initial?.club ?? '')
+  const [versionId, setVersionId] = useState<string | null>(initial?.card_version_id ?? null)
+  const [busy, setBusy] = useState(false)
+  const r = Number(rating)
+  const invalid = !name.trim() ? 'Bitte einen Namen eintragen.' : rating && (r < 1 || r > 99) ? 'Das Rating muss zwischen 1 und 99 liegen.' : ''
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (invalid || busy) return
+    setBusy(true)
+    await onSubmit({ player_name: name.trim(), rating: rating ? r : null, club: club.trim(), card_version_id: versionId })
+    setBusy(false)
+  }
+
+  return (
+    <form className="grid gap-4" onSubmit={submit}>
+      <div>
+        <label className="label" htmlFor={`${id}-name`}>
+          Spieler
+        </label>
+        <input id={`${id}-name`} className="field" autoCapitalize="words" autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="grid grid-cols-[6rem_1fr] gap-3">
+        <div>
+          <label className="label" htmlFor={`${id}-rating`}>
+            Rating
+          </label>
+          <input
+            id={`${id}-rating`}
+            className="field"
+            inputMode="numeric"
+            value={rating}
+            onChange={(e) => setRating(e.target.value.replace(/\D/g, '').slice(0, 2))}
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor={`${id}-club`}>
+            Verein
+          </label>
+          <input id={`${id}-club`} className="field" autoComplete="off" value={club} onChange={(e) => setClub(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <VersionSelect value={versionId} onChange={setVersionId} />
+      </div>
+      {invalid && name && <p className="text-[14px] text-bad">{invalid}</p>}
+      <button className="btn btn-coin min-h-14" disabled={!!invalid || busy}>
+        {submitLabel}
+      </button>
+    </form>
+  )
+}
+
+interface Draft extends UevInput {
+  key: number
+}
+
+/** Import: Screenshot (Texterkennung im Browser) oder eingefügter Text, danach Vorschau zum Korrigieren */
+function ImportSheet({
+  open,
+  onClose,
+  existing,
+  onSave,
+}: {
+  open: boolean
+  onClose: () => void
+  existing: UevPlayer[]
+  onSave: (items: UevInput[]) => Promise<boolean>
+}) {
+  const { versions } = useData()
+  const toast = useToast()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [text, setText] = useState('')
+  const [progress, setProgress] = useState<number | null>(null)
+  const [drafts, setDrafts] = useState<Draft[] | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  function close() {
+    if (progress != null) return
+    setText('')
+    setDrafts(null)
+    onClose()
+  }
+
+  function preview(raw: string) {
+    const parsed = parseUevText(raw, versions)
+    if (parsed.length === 0) {
+      toast('Keine Spieler erkannt. Versuche einen schärferen Screenshot oder füge den Text ein.', 'error')
+      return
+    }
+    setDrafts(parsed.map((p, i) => ({ ...p, key: i })))
+  }
+
+  async function onFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setProgress(0)
+    try {
+      preview(await recognizeImages([...files], setProgress))
+    } catch (e) {
+      toast(`Texterkennung fehlgeschlagen: ${errMsg(e)}`, 'error')
+    } finally {
+      setProgress(null)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const patch = (key: number, p: Partial<UevInput>) =>
+    setDrafts((d) => d && d.map((x) => (x.key === key ? { ...x, ...p } : x)))
+
+  const valid = (drafts ?? []).filter((d) => d.player_name.trim())
+  const fresh = valid.filter((d) => !existing.some((e) => isSameUev(e, d)))
+
+  return (
+    <BottomSheet open={open} onClose={close} title={drafts ? 'Erkannte Spieler prüfen' : 'Liste importieren'}>
+      {!drafts ? (
+        <div className="grid gap-4">
+          <div className="tile bg-raised text-[14px] leading-relaxed text-mute">
+            Futbin-Links kann die App nicht direkt lesen, Futbin blockiert das. Mach stattdessen einen{' '}
+            <span className="text-ink">Screenshot</span> deiner Liste oder markiere die Tabelle auf Futbin und{' '}
+            <span className="text-ink">kopiere den Text</span>.
+          </div>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => void onFiles(e.target.files)}
+          />
+          <button className="btn btn-coin min-h-14" disabled={progress != null} onClick={() => fileRef.current?.click()}>
+            {progress == null ? 'Screenshot auswählen' : `Text wird erkannt … ${Math.round(progress * 100)} %`}
+          </button>
+          {progress != null && (
+            <p className="text-center text-[13px] text-mute">Beim ersten Mal werden ca. 10 MB Erkennungsdaten geladen.</p>
+          )}
+
+          <div className="flex items-center gap-3 text-[13px] text-mute">
+            <span className="h-px flex-1 bg-line" /> oder <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <div>
+            <label className="label" htmlFor="uev-text">
+              Text einfügen (eine Zeile pro Spieler, z. B. „Mbappé; 91; Real Madrid; TOTW“)
+            </label>
+            <textarea
+              id="uev-text"
+              className="field min-h-32 py-3"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+          </div>
+          <button className="btn btn-quiet" disabled={!text.trim() || progress != null} onClick={() => preview(text)}>
+            Text auslesen
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          <p className="text-[14px] text-mute">
+            Prüfe die Einträge und korrigiere sie bei Bedarf. Spieler, die schon in deiner ÜV-Liste stehen, werden
+            übersprungen.
+          </p>
+          <ul className="grid gap-2">
+            {drafts.map((d) => {
+              const dup = existing.some((e) => isSameUev(e, d))
+              return (
+                <li key={d.key} className={`rounded-xl border border-line p-3 ${dup ? 'opacity-50' : ''}`}>
+                  <div className="flex gap-2">
+                    <input
+                      className="field min-h-10 flex-1"
+                      aria-label="Spieler"
+                      value={d.player_name}
+                      onChange={(e) => patch(d.key, { player_name: e.target.value })}
+                    />
+                    <input
+                      className="field min-h-10 w-16 px-2 text-center"
+                      aria-label="Rating"
+                      inputMode="numeric"
+                      placeholder="OVR"
+                      value={d.rating ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                        patch(d.key, { rating: v && Number(v) > 0 ? Number(v) : null })
+                      }}
+                    />
+                    <button
+                      className="min-h-10 shrink-0 px-2 text-mute"
+                      aria-label="Entfernen"
+                      onClick={() => setDrafts((list) => list && list.filter((x) => x.key !== d.key))}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className="field min-h-10 flex-1"
+                      aria-label="Verein"
+                      placeholder="Verein"
+                      value={d.club}
+                      onChange={(e) => patch(d.key, { club: e.target.value })}
+                    />
+                    <select
+                      className="field min-h-10 flex-1 px-2"
+                      aria-label="Version"
+                      value={d.card_version_id ?? ''}
+                      onChange={(e) => patch(d.key, { card_version_id: e.target.value || null })}
+                    >
+                      <option value="">Version …</option>
+                      {versions.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {dup && <p className="mt-1 text-[13px] text-mute">Schon in der ÜV-Liste</p>}
+                </li>
+              )
+            })}
+          </ul>
+          <button
+            className="btn btn-coin min-h-14"
+            disabled={fresh.length === 0 || busy}
+            onClick={async () => {
+              setBusy(true)
+              const ok = await onSave(
+                fresh.map((d) => ({
+                  player_name: d.player_name.trim(),
+                  rating: d.rating,
+                  club: d.club.trim(),
+                  card_version_id: d.card_version_id,
+                })),
+              )
+              setBusy(false)
+              if (ok) close()
+            }}
+          >
+            {fresh.length === 1 ? '1 Spieler übernehmen' : `${fresh.length} Spieler übernehmen`}
+          </button>
+          <button className="btn btn-ghost" onClick={() => setDrafts(null)}>
+            Zurück
+          </button>
+        </div>
+      )}
+    </BottomSheet>
+  )
+}
