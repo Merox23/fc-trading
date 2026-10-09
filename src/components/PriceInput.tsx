@@ -53,7 +53,13 @@ export function PriceInput({ label, value, onChange, steps = [1000, 5000, 10000]
             key={s}
             type="button"
             className="btn btn-quiet px-0 text-[15px] tabular-nums"
-            onClick={() => onChange(snap ? snapToNearestValidPrice(Math.min((value ?? 0) + s, MAX_PRICE)) : Math.min((value ?? 0) + s, MAX_PRICE))}
+            onClick={() => {
+              const raw = Math.min((value ?? 0) + s, MAX_PRICE)
+              if (!snap) return onChange(raw)
+              const snapped = snapToNearestValidPrice(raw)
+              onChange(snapped)
+              onSnap?.(snapped)
+            }}
           >
             +{fmt(s)}
           </button>
