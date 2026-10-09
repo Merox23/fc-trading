@@ -31,19 +31,54 @@ export function namesMatch(a: string, b: string): boolean {
   return short.every((w) => long.some((l) => l === w || (w.length === 1 && l.startsWith(w))))
 }
 
+/**
+ * Lockerer Namensvergleich für Fälle, die `namesMatch` nicht abdeckt: Vorname statt Nachname
+ * ("Kerolin" = "Kerolin Nicoli"), andere Reihenfolge oder ein Tippfehler ("Rabio" = "Rabiot").
+ * Zählt nur zusammen mit gleichem Rating, damit "Bruno" nicht jeden Bruno trifft.
+ */
+function namesSimilar(a: string, b: string): boolean {
+  const x = normalizeName(a)
+  const y = normalizeName(b)
+  if (!x || !y) return false
+  const ta = x.split(' ')
+  const tb = y.split(' ')
+  const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta]
+  if (short.join('').length >= 4 && short.every((w) => long.includes(w))) return true
+  const close = (p: string, q: string) => Math.min(p.length, q.length) >= 5 && editDistance(p, q) <= 1
+  return close(x, y) || close(ta[ta.length - 1], tb[tb.length - 1])
+}
+
+type UevMatchFields = Pick<UevPlayer, 'player_name' | 'rating' | 'card_version_id'>
+/** Liefert den Namen einer Kartenversion, damit gleichnamige Versionen als gleich gelten */
+type VersionName = (id: string | null) => string | undefined
+
+function sameVersion(a: string | null, b: string | null, versionName?: VersionName): boolean {
+  if (!a || !b || a === b) return true
+  const na = versionName?.(a)
+  return !!na && na.toLowerCase() === versionName?.(b)?.toLowerCase()
+}
+
 /** Passt ein Trade zum ÜV-Eintrag? Rating und Version zählen nur, wenn beide Seiten sie haben. */
-export function matchesTrade(u: Pick<UevPlayer, 'player_name' | 'rating' | 'card_version_id'>, t: Trade): boolean {
-  if (u.rating != null && t.rating != null && u.rating !== t.rating) return false
-  if (u.card_version_id && t.card_version_id && u.card_version_id !== t.card_version_id) return false
-  return namesMatch(u.player_name, t.player_name)
+export function matchesTrade(u: UevMatchFields, t: Trade, versionName?: VersionName): boolean {
+  const ratingKnown = u.rating != null && t.rating != null
+  if (ratingKnown && u.rating !== t.rating) return false
+  if (!sameVersion(u.card_version_id, t.card_version_id, versionName)) return false
+  return namesMatch(u.player_name, t.player_name) || (ratingKnown && namesSimilar(u.player_name, t.player_name))
 }
 
 /** Offenes Angebot, das zum ÜV-Eintrag passt. Verkaufte Spieler zählen nicht, die kannst du nachkaufen. */
-export function findListedMatch(
-  u: Pick<UevPlayer, 'player_name' | 'rating' | 'card_version_id'>,
-  trades: Trade[],
-): Trade | undefined {
-  return trades.find((t) => t.status === 'listed' && matchesTrade(u, t))
+export function findListedMatch(u: UevMatchFields, trades: Trade[], versionName?: VersionName): Trade | undefined {
+  return trades.find((t) => t.status === 'listed' && matchesTrade(u, t, versionName))
+}
+
+/**
+ * Offenes Angebot mit gleichem Spieler, das nur wegen Rating oder Version nicht zählt.
+ * Wird in der ÜV-Liste als Hinweis angezeigt, damit man sieht, warum er nicht als gekauft gilt.
+ */
+export function findNearMatch(u: UevMatchFields, trades: Trade[]): Trade | undefined {
+  return trades.find(
+    (t) => t.status === 'listed' && (namesMatch(u.player_name, t.player_name) || namesSimilar(u.player_name, t.player_name)),
+  )
 }
 
 /** Gleicher Eintrag schon in der ÜV-Liste? (Name, Rating und Version gleich) */

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CardVersion, Trade } from '../types'
 import ocrEng from './__fixtures__/futbin-ocr.txt?raw'
 import ocrEngDeu from './__fixtures__/futbin-ocr-deu.txt?raw'
-import { correctName, findListedMatch, fromFutbin, namesMatch, normalizeName, parseUevText } from './uev'
+import { correctName, findListedMatch, findNearMatch, fromFutbin, namesMatch, normalizeName, parseUevText } from './uev'
 
 const v = (id: string, name: string): CardVersion => ({ id, user_id: null, name, color: '#000000' })
 const VERSIONS = [v('gold', 'Gold'), v('icon', 'Icon'), v('hero', 'Hero'), v('totw', 'Team of the Week')]
@@ -38,6 +38,23 @@ describe('Abgleich mit Angeboten', () => {
   it('unterscheidet Rating und Version', () => {
     expect(findListedMatch(uev, [trade({ player_name: 'Mbappé', rating: 95 })])).toBeUndefined()
     expect(findListedMatch(uev, [trade({ player_name: 'Mbappé', card_version_id: 'totw' })])).toBeUndefined()
+  })
+  it('erkennt Vorname, Tippfehler und gleichnamige Versionen', () => {
+    const kerolin = { player_name: 'Kerolin Nicoli', rating: 85, card_version_id: 'gold' }
+    expect(findListedMatch(kerolin, [trade({ player_name: 'Kerolin', rating: 85 })])).toBeTruthy()
+    expect(findListedMatch({ ...uev, player_name: 'Rabiot', rating: 85 }, [trade({ player_name: 'Rabio', rating: 85 })])).toBeTruthy()
+    // locker nur mit gleichem Rating: "Bruno" ohne Rating trifft nicht jeden Bruno
+    expect(findListedMatch({ player_name: 'Bruno Fernandes', rating: null, card_version_id: null }, [trade({ player_name: 'Bruno' })])).toBeUndefined()
+    // eigene Version "Gold" und Standardversion "Gold" gelten als gleich
+    const names: Record<string, string> = { gold: 'Gold', mygold: 'gold', totw: 'Team of the Week' }
+    const vn = (id: string | null) => (id ? names[id] : undefined)
+    expect(findListedMatch(uev, [trade({ player_name: 'Mbappé', rating: 91, card_version_id: 'mygold' })], vn)).toBeTruthy()
+    expect(findListedMatch(uev, [trade({ player_name: 'Mbappé', rating: 91, card_version_id: 'totw' })], vn)).toBeUndefined()
+  })
+  it('findet fast passende Angebote als Hinweis', () => {
+    const t = trade({ player_name: 'Mbappé', rating: 95, card_version_id: 'totw' })
+    expect(findListedMatch(uev, [t])).toBeUndefined()
+    expect(findNearMatch(uev, [t])).toBe(t)
   })
   it('lässt fehlendes Rating oder fehlende Version durchgehen', () => {
     expect(findListedMatch(uev, [trade({ player_name: 'Mbappé' })])).toBeTruthy()

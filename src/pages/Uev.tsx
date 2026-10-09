@@ -10,7 +10,7 @@ import { useUev } from '../hooks/useUev'
 import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
 import { bookmarkletCode, readPayloadFromHash } from '../lib/bookmarklet'
-import { correctName, findListedMatch, fromFutbin, isSameUev, parseUevText, type FutbinDraft } from '../lib/uev'
+import { correctName, findListedMatch, findNearMatch, fromFutbin, isSameUev, parseUevText, type FutbinDraft } from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
@@ -63,10 +63,13 @@ export default function Uev() {
   }, [])
 
   // Abgleich läuft live: kaufst oder verkaufst du einen Spieler, ändert sich die Markierung sofort
-  const rows = useMemo(
-    () => uev.list.map((u) => ({ u, match: findListedMatch(u, trades) })),
-    [uev.list, trades],
-  )
+  const rows = useMemo(() => {
+    const versionName = (id: string | null) => versionById(id)?.name
+    return uev.list.map((u) => {
+      const match = findListedMatch(u, trades, versionName)
+      return { u, match, near: match ? undefined : findNearMatch(u, trades) }
+    })
+  }, [uev.list, trades, versionById])
   const bought = rows.filter((r) => r.match).length
   const shown = rows.filter((r) => filter === 'alle' || (filter === 'gekauft') === !!r.match)
 
@@ -129,8 +132,9 @@ export default function Uev() {
             <Empty title={filter === 'gekauft' ? 'Noch nichts gekauft' : 'Alles gekauft'} />
           ) : (
             <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {shown.map(({ u, match }) => {
+              {shown.map(({ u, match, near }) => {
                 const version = versionById(u.card_version_id)
+                const nearVersion = near && versionById(near.card_version_id)
                 return (
                   <li key={u.id} className={`tile flex items-center gap-3 ${match ? 'border-good/40' : ''}`}>
                     <button
@@ -150,6 +154,20 @@ export default function Uev() {
                           {version && <VersionChip version={version} />}
                           {u.club && <span className="truncate">{u.club}</span>}
                         </div>
+                        {near && (
+                          <p className="mt-1 text-[13px] text-coin">
+                            Im Angebot als {near.player_name}
+                            {near.rating != null && ` · ${near.rating}`}
+                            {nearVersion && ` · ${nearVersion.name}`}, zählt nicht wegen{' '}
+                            {u.rating != null && near.rating != null && u.rating !== near.rating
+                              ? 'anderem Rating'
+                              : u.card_version_id && near.card_version_id && u.card_version_id !== near.card_version_id
+                                ? 'anderer Version'
+                                : 'abweichendem Namen ohne Rating'}
+                            .
+                            Tippen zum Anpassen.
+                          </p>
+                        )}
                       </div>
                     </button>
                     {match ? (
