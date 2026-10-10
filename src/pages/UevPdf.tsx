@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useData } from '../hooks/useData'
 import { useUev } from '../hooks/useUev'
 import { fmtDate } from '../lib/format'
-import { uevStatus } from '../lib/uev'
+import { loadUevSort, sortUevRows, uevStatus } from '../lib/uev'
 
 /** Schlichte, helle Druckansicht der ÜV-Liste – für "Als PDF sichern" über den Drucken-Dialog */
 export default function UevPdf() {
@@ -14,7 +14,7 @@ export default function UevPdf() {
 
   const rows = useMemo(
     () =>
-      uevStatus(uev.list, trades, versionById).sort((a, b) => a.u.player_name.localeCompare(b.u.player_name, 'de')),
+      sortUevRows(uevStatus(uev.list, trades, versionById), loadUevSort(), versionById),
     [uev.list, trades, versionById],
   )
   const bought = rows.filter((r) => r.match).length

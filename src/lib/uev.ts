@@ -346,3 +346,70 @@ export function uevStatus(
     return { u, match, near: match ? undefined : findNearMatch(u, trades) }
   })
 }
+
+export type UevSort = 'neu' | 'alt' | 'name' | 'rating-hoch' | 'rating-tief' | 'version' | 'verein' | 'offen'
+
+export const UEV_SORT_OPTIONS: { value: UevSort; label: string }[] = [
+  { value: 'neu', label: 'Zuletzt hinzugefügt' },
+  { value: 'alt', label: 'Zuerst hinzugefügt' },
+  { value: 'name', label: 'Name (A–Z)' },
+  { value: 'rating-hoch', label: 'Rating (höchstes zuerst)' },
+  { value: 'rating-tief', label: 'Rating (niedrigstes zuerst)' },
+  { value: 'version', label: 'Version' },
+  { value: 'verein', label: 'Verein' },
+  { value: 'offen', label: 'Noch kaufen zuerst' },
+]
+
+/**
+ * ÜV-Zeilen sortieren (gibt eine neue Liste zurück). Einträge ohne Rating, Version oder Verein
+ * landen immer hinten, bei Gleichstand entscheidet der Name.
+ */
+export function sortUevRows<R extends { u: UevPlayer; match?: Trade }>(
+  rows: R[],
+  sort: UevSort,
+  versionById: (id: string | null) => CardVersion | undefined,
+): R[] {
+  const byName = (a: R, b: R) => a.u.player_name.localeCompare(b.u.player_name, 'de')
+  // leere Werte nach hinten, sonst vergleichen
+  const text = (x: string | undefined, y: string | undefined) =>
+    !x && !y ? 0 : !x ? 1 : !y ? -1 : x.localeCompare(y, 'de')
+  const num = (x: number | null, y: number | null, dir: 1 | -1) =>
+    x == null && y == null ? 0 : x == null ? 1 : y == null ? -1 : (x - y) * dir
+  const created = (a: R, b: R) => a.u.created_at.localeCompare(b.u.created_at)
+
+  const cmp: Record<UevSort, (a: R, b: R) => number> = {
+    neu: (a, b) => created(b, a),
+    alt: created,
+    name: byName,
+    'rating-hoch': (a, b) => num(a.u.rating, b.u.rating, -1) || byName(a, b),
+    'rating-tief': (a, b) => num(a.u.rating, b.u.rating, 1) || byName(a, b),
+    version: (a, b) =>
+      text(versionById(a.u.card_version_id)?.name, versionById(b.u.card_version_id)?.name) ||
+      num(a.u.rating, b.u.rating, -1) ||
+      byName(a, b),
+    verein: (a, b) => text(a.u.club, b.u.club) || byName(a, b),
+    offen: (a, b) => Number(!!a.match) - Number(!!b.match) || byName(a, b),
+  }
+  return [...rows].sort(cmp[sort] ?? cmp.neu)
+}
+
+// Gewählte Sortierung (nur in diesem Browser), gilt für Liste und Export
+const SORT_KEY = 'fc-uev-sort'
+
+export function loadUevSort(): UevSort {
+  try {
+    const v = localStorage.getItem(SORT_KEY)
+    if (UEV_SORT_OPTIONS.some((o) => o.value === v)) return v as UevSort
+  } catch {
+    /* ohne Speicher gilt die Standardsortierung */
+  }
+  return 'neu'
+}
+
+export function saveUevSort(sort: UevSort) {
+  try {
+    localStorage.setItem(SORT_KEY, sort)
+  } catch {
+    /* ohne Speicher wird nur nichts gemerkt */
+  }
+}

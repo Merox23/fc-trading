@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BottomSheet, ConfirmSheet } from '../components/BottomSheet'
 import { TradeForm } from '../components/TradeForm'
 import { VersionSelect } from '../components/VersionSelect'
-import { Empty, PageTitle, PlayerAvatar, Segmented, SmallButton, VersionChip } from '../components/ui'
+import { Empty, FieldSelect, PageTitle, PlayerAvatar, Segmented, SmallButton, VersionChip } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
 import { useData } from '../hooks/useData'
 import { useRun, useToast } from '../hooks/useToast'
@@ -12,7 +12,19 @@ import { errMsg } from '../lib/errors'
 import { recognizeImages } from '../lib/ocr'
 import { bookmarkletCode, readPayloadFromHash } from '../lib/bookmarklet'
 import { buildUevCsv, buildUevText, downloadTextFile } from '../lib/csv'
-import { correctName, fromFutbin, isSameUev, parseUevText, uevStatus, type FutbinDraft } from '../lib/uev'
+import {
+  correctName,
+  fromFutbin,
+  isSameUev,
+  loadUevSort,
+  parseUevText,
+  saveUevSort,
+  sortUevRows,
+  uevStatus,
+  UEV_SORT_OPTIONS,
+  type FutbinDraft,
+  type UevSort,
+} from '../lib/uev'
 import type { UevInput, UevPlayer } from '../types'
 
 type Filter = 'alle' | 'offen' | 'gekauft'
@@ -45,6 +57,7 @@ export default function Uev() {
   const { trades, versions, versionById, addTrade } = useData()
   const run = useRun()
   const [filter, setFilter] = useState<Filter>('alle')
+  const [sort, setSort] = useState<UevSort>(loadUevSort)
   const [importOpen, setImportOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<UevPlayer | null>(null)
@@ -66,7 +79,10 @@ export default function Uev() {
   }, [])
 
   // Abgleich läuft live: kaufst oder verkaufst du einen Spieler, ändert sich die Markierung sofort
-  const rows = useMemo(() => uevStatus(uev.list, trades, versionById), [uev.list, trades, versionById])
+  const rows = useMemo(
+    () => sortUevRows(uevStatus(uev.list, trades, versionById), sort, versionById),
+    [uev.list, trades, versionById, sort],
+  )
   const bought = rows.filter((r) => r.match).length
   const shown = rows.filter((r) => filter === 'alle' || (filter === 'gekauft') === !!r.match)
 
@@ -117,7 +133,16 @@ export default function Uev() {
               <SmallButton onClick={() => setClearing(true)}>Liste leeren</SmallButton>
             </div>
           </div>
-          <div className="mb-4">
+          <div className="mb-4 grid gap-3 md:max-w-md">
+            <FieldSelect
+              label="Sortieren nach"
+              value={sort}
+              onChange={(v) => {
+                setSort(v as UevSort)
+                saveUevSort(v as UevSort)
+              }}
+              options={UEV_SORT_OPTIONS}
+            />
             <Segmented
               value={filter}
               onChange={setFilter}
