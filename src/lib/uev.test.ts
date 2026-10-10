@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import type { CardVersion, Trade } from '../types'
+import type { CardVersion, Trade, UevPlayer } from '../types'
 import ocrEng from './__fixtures__/futbin-ocr.txt?raw'
 import ocrEngDeu from './__fixtures__/futbin-ocr-deu.txt?raw'
-import { correctName, findListedMatch, findNearMatch, fromFutbin, namesMatch, normalizeName, parseUevText } from './uev'
+import {
+  correctName,
+  findListedMatch,
+  findNearMatch,
+  fromFutbin,
+  namesMatch,
+  normalizeName,
+  parseUevText,
+  sortUevRows,
+} from './uev'
 
 const v = (id: string, name: string): CardVersion => ({ id, user_id: null, name, color: '#000000' })
 const VERSIONS = [v('gold', 'Gold'), v('icon', 'Icon'), v('hero', 'Hero'), v('totw', 'Team of the Week')]
@@ -160,5 +169,34 @@ describe('Futbin-Lesezeichen', () => {
     const [again] = fromFutbin([{ n: 'Banda(ST)', r: 88, c: '', k: 'badge fg:rgb(60, 45, 10) c67890.png' }], VERSIONS, learned)
     expect(again.card_version_id).toBe('hero')
     expect(fromFutbin([{ n: 'X', r: 80, c: '', k: 'other' }], VERSIONS, learned)[0].card_version_id).toBeNull()
+  })
+})
+
+describe('sortUevRows', () => {
+  const p = (player_name: string, x: Partial<UevPlayer>): { u: UevPlayer; match?: Trade } => ({
+    u: { id: player_name, user_id: 'u', player_name, rating: null, club: '', card_version_id: null, created_at: '2026-10-01T00:00:00Z', ...x },
+  })
+  const rows = [
+    p('Mbappé', { rating: 91, card_version_id: 'gold', club: 'Real Madrid', created_at: '2026-10-02T00:00:00Z' }),
+    { ...p('Zidane', { rating: 96, card_version_id: 'icon', created_at: '2026-10-01T00:00:00Z' }), match: trade({}) },
+    p('Ake', { created_at: '2026-10-03T00:00:00Z', club: 'Man City' }),
+  ]
+  const byId = (id: string | null) => VERSIONS.find((x) => x.id === id)
+  const names = (s: Parameters<typeof sortUevRows>[1]) => sortUevRows(rows, s, byId).map((r) => r.u.player_name)
+
+  it('sortiert nach Datum, Name, Rating, Version, Verein und Status', () => {
+    expect(names('neu')).toEqual(['Ake', 'Mbappé', 'Zidane'])
+    expect(names('alt')).toEqual(['Zidane', 'Mbappé', 'Ake'])
+    expect(names('name')).toEqual(['Ake', 'Mbappé', 'Zidane'])
+    expect(names('rating-hoch')).toEqual(['Zidane', 'Mbappé', 'Ake'])
+    expect(names('rating-tief')).toEqual(['Mbappé', 'Zidane', 'Ake'])
+    expect(names('version')).toEqual(['Mbappé', 'Zidane', 'Ake'])
+    expect(names('verein')).toEqual(['Ake', 'Mbappé', 'Zidane'])
+    expect(names('offen')).toEqual(['Ake', 'Mbappé', 'Zidane'])
+  })
+
+  it('lässt die Eingabe unverändert', () => {
+    sortUevRows(rows, 'name', byId)
+    expect(rows.map((r) => r.u.player_name)).toEqual(['Mbappé', 'Zidane', 'Ake'])
   })
 })
